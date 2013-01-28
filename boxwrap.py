@@ -105,7 +105,31 @@ class BoxWrap:
         return True
     return False
 
+  def _handle_uncompressed_files(self, error_list, path):
+    for item in error_list:
+      print 'Compress ' + item + ' in ' + path
+      item_path = os.path.join(path, item)
+      if os.path.exists(item_path):
+        compression.compress_file(
+            item_path,
+            compression.get_compressed_filename(item_path),
+            password=self.password,
+            encryption_method=self.encryption_method)
+        os.remove(item_path)
+
   def sync(self):
+    error_list = compression.test_decompress_recursively(
+        '', self.cloud_dir, password=self.password)
+    fatal_error = False
+    for item in error_list:
+      if compression.is_compressed_filename(item):
+        fatal_error = True
+        break
+    if fatal_error:
+      return
+
+    self._handle_uncompressed_files(error_list, self.cloud_dir)
+
     print '*'*10 + 'Initial sync working'
     working_change_list = unison.sync_with_unison(
         self.working_dir, self.working_original_im,

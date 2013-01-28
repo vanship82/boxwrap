@@ -192,3 +192,48 @@ def decompress_recursively(path, src_base_path, dest_base_path,
                           os.path.join(cur_dest_path, f)),
                       password=password)
 
+def test_decompress_file(src_file, password=None):
+  test_params = [os.path.join(ZIP_PATH, ZIP_BIN), 't']
+  if password:
+    test_params.append('-p%s' % password)
+  else:
+    test_params.append('-p%s' % INVALID_PASSWORD)
+
+  test_params.append(src_file)
+
+  try:
+    subprocess.check_call(test_params, shell=False,
+                          stderr=open('/dev/null'),
+                          stdout=open('/dev/null'))
+    return True
+  except subprocess.CalledProcessError as e:
+    if RETURN_CODE_EXCEPTION_MAP.has_key(e.returncode):
+      raise RETURN_CODE_EXCEPTION_MAP[e.returncode]('', e.returncode)
+    else:
+      raise CompressionException('', e.returncode)
+
+def test_decompress_recursively(path, src_base_path, password=None):
+  src_total_path = os.path.join(src_base_path, path)
+  error_list = []
+  if os.path.isfile(src_total_path):
+    try:
+      test_decompress_file(src_total_path,
+                           password=password)
+    except CompressionException as e:
+      if isinstance(e, CompressionFatalError):
+        error_list.append(path)
+
+    return error_list
+
+  for (cur_path, dirs, files) in os.walk(src_total_path):
+    rel_path = os.path.relpath(cur_path, src_base_path)
+
+    for f in files:
+      try:
+        test_decompress_file(os.path.join(cur_path, f),
+                             password=password)
+      except CompressionException as e:
+        if isinstance(e, CompressionFatalError):
+          error_list.append(os.path.join(rel_path, f))
+
+  return error_list
