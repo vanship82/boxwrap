@@ -16,10 +16,25 @@ _CASE_PATH = 'dir'
 class TestCompressionCases(unittest.TestCase):
 
   def setUp(self):
-    shutil.rmtree(_CASE_DEST)
-    shutil.rmtree(_CASE_OUT)
-    os.mkdir(_CASE_DEST)
-    os.mkdir(_CASE_OUT)
+    if os.path.exists(_CASE_SRC):
+      shutil.rmtree(_CASE_SRC)
+    if os.path.exists(_CASE_DEST):
+      shutil.rmtree(_CASE_DEST)
+    if os.path.exists(_CASE_OUT):
+      shutil.rmtree(_CASE_OUT)
+    os.makedirs(_CASE_SRC)
+    os.makedirs(_CASE_DEST)
+    os.makedirs(_CASE_OUT)
+    path = os.path.join(_CASE_SRC, _CASE_PATH)
+    os.makedirs(path)
+    f = open(os.path.join(path, 'test.txt'), 'w')
+    f.write('test123')
+    f.close()
+    os.makedirs(os.path.join(path, 'testdir'))
+    f = open(os.path.join(path, os.path.join('testdir', 'test_in_dir.txt')),
+             'w')
+    f.write('test123_in_dir')
+    f.close()
 
   def test_copmression(self):
     compression.compress_recursively(
