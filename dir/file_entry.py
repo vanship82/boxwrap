@@ -4,9 +4,10 @@ import hashlib
 import os
 import traceback
 
+import cStringIO
+
 from util import i18n
 
-import cStringIO
 
 class FileEntry:
 
@@ -74,19 +75,11 @@ def load_file_entry(path):
 
 
 def load_from_csv_row(row):
-  print row
-  print (
-      row[0],
-      row[1] == '1',
-      int(row[2]),
-      int(row[3]) if int(row[2]) >= 0 else None,
-      float(row[4]),
-      row[5] or None)
   return FileEntry(
       row[0],
       row[1] == '1',
       int(row[2]),
-      int(row[3]) if int(row[2]) >= 0 else None,
+      int(row[3]) if int(row[3]) >= 0 else None,
       float(row[4]),
       row[5] or None)
 
@@ -95,6 +88,8 @@ def load_csv(f):
   reader = i18n.UnicodeReader(f)
   result = []
   for row in reader:
+    if len(row) < 6:
+      continue
     result.append(load_from_csv_row(row))
   return result
 
@@ -102,10 +97,8 @@ def load_csv(f):
 def load_dir_recursively(dir_path):
   file_entries = []
   for root, dirs, files in os.walk(dir_path):
-    print root
     file_entries.append(load_file_entry(root))
     for f in files:
-      print os.path.join(root, f)
       file_entries.append(load_file_entry(os.path.join(root, f)))
   file_entries.sort(key=lambda file_entry: file_entry.path)
   return file_entries
