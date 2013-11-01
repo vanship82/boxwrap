@@ -100,7 +100,8 @@ def load_dir_recursively(dir_path):
     file_entries.append(load_file_entry(root))
     for f in files:
       file_entries.append(load_file_entry(os.path.join(root, f)))
-  file_entries.sort(key=lambda file_entry: file_entry.path)
+  file_entries.sort(
+      key=lambda file_entry: file_entry.path.replace(os.pathsep, '\1'))
   return file_entries
 
 
