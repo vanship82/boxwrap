@@ -34,6 +34,9 @@ class FileEntry:
     self.file_hash = sha1.hexdigest()
     return self.file_hash
 
+  def path_for_sorting(self):
+    return self.path.replace(os.pathsep, '\1')
+
   def to_csv(self):
     output = cStringIO.StringIO()
     writer = i18n.UnicodeWriter(output)
@@ -101,7 +104,7 @@ def load_dir_recursively(dir_path):
     for f in files:
       file_entries.append(load_file_entry(os.path.join(root, f)))
   file_entries.sort(
-      key=lambda file_entry: file_entry.path.replace(os.pathsep, '\1'))
+      key=lambda file_entry: file_entry.path_for_sorting())
   return file_entries
 
 
