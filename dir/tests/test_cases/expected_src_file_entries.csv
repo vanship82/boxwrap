@@ -1,9 +1,13 @@
-src,1,16893,-1,1383120505.19,
+src,1,16893,-1,1383290374.72,
+src/dir10_become_file,1,16893,-1,1383290389.79,
+src/dir10_become_file/test10_1_deleted.txt,0,33204,5,1383290389.79,cb1d0859dbc793db9974187223ef94eea562d801
 src/dir1_unchanged,1,16893,-1,1383118663.71,
 src/dir1_unchanged/dir1_1_unchanged,1,16893,-1,1383118679.69,
 src/dir1_unchanged/dir1_1_unchanged/test1_1_1_unchanged.txt,0,33204,6,1383118679.69,99fd7e28b05015ed9daeebdb24d7811b0b926de9
 src/dir1_unchanged/test1_1_unchanged.txt,0,33204,4,1383118288.98,4e173c548c709d29e050495ca6c27a3daab237cb
-src/dir2_modified,1,16893,-1,1383120112.04,
+src/dir2_modified,1,16893,-1,1383290651.05,
+src/dir2_modified/dir2_10_become_file,1,16893,-1,1383290672.32,
+src/dir2_modified/dir2_10_become_file/test2_10_1_deleted.txt,0,33204,7,1383290672.32,15ad1a41760be88097ac1da233e46e0c72bc0454
 src/dir2_modified/dir2_1_unchanged,1,16893,-1,1383119908.03,
 src/dir2_modified/dir2_1_unchanged/test2_1_1_unchanged.txt,0,33204,6,1383119860.14,ce8288f92bc0cd4821f2409b20661024986612fd
 src/dir2_modified/dir2_2_modified,1,16893,-1,1383119887.52,
@@ -31,6 +35,7 @@ src/dir2_modified/test2_3_deleted.txt,0,33204,4,1383118325.04,1c2011d7ed48dc9085
 src/dir2_modified/test2_4_renamed.txt,0,33204,4,1383118791.19,c9e48a3c8b807ed45c505e7d9bd3e2ccff0de9dc
 src/dir2_modified/test2_5_moved_dir2_2.txt,0,33204,4,1383119217.23,26d3c5e4ffb89fe86b52045f04746e31fbd17366
 src/dir2_modified/test2_6_moved_dir__.txt,0,33204,4,1383119651.9,4035d79540532ddd9be5c7f130bb75d2f5e0c8d0
+src/dir2_modified/test2_7_become_dir,0,33204,4,1383290639.45,410d1dbe49a44ee1ca39d9217ee714917791f30f
 src/dir3_deleted,1,16893,-1,1383120262.34,
 src/dir3_deleted/dir3_1_deleted,1,16893,-1,1383120278.3,
 src/dir3_deleted/dir3_1_deleted/test3_1_1_deleted.txt,0,33204,6,1383120278.3,ef09a09d1e289571615255e8f76041face789664
@@ -62,4 +67,5 @@ src/test3_deleted.txt,0,33204,2,1383118250.74,a3db5c13ff90a36963278c6a39e4ee3c22
 src/test4_renamed.txt,0,33204,2,1383118254.09,9c6b057a2b9d96a4067a749ee3b3b0158d390cf1
 src/test5_moved_dir2.txt,0,33204,2,1383119810.73,5d9474c0309b7ca09a182d888f73b37a8fe1362c
 src/test6_moved_dir2_2.txt,0,33204,2,1383119821.15,ccf271b7830882da1791852baeca1737fcbe4b90
+src/test7_become_dir,0,33204,2,1383290332.91,d3964f9dad9f60363c81b688324d95b4ec7c8038
 
