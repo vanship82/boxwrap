@@ -1,4 +1,5 @@
 import collections
+import os
 
 from dir import file_entry
 
@@ -12,11 +13,30 @@ CONTENT_STATUS_DELETED = 5
 
 class ChangeStatus:
 
-  def __init__(self, path, new_entry, old_entry, content_status):
+  def __init__(self, path, new_entry, old_entry, content_status,
+               parent_change_path=None):
     self.path = path
     self.new_entry = new_entry
     self.old_entry = old_entry
     self.content_status = content_status
+    self.parent_change_path = parent_change_path
+
+  def to_csv(self):
+    output = cStringIO.StringIO()
+    writer = i18n.UnicodeWriter(output)
+    writer.writerow([
+      self.path,
+      self.content_status,
+      self.parent_change_path])
+    return output.getvalue().strip('\r\n')
+
+  def __str__(self):
+    return (
+        'path: %s, content_status: %s, %s' % (
+            self.path,
+            self.content_status,
+            ('parent_change: %s' % self.parent_change_path
+                if self.parent_change_path else '')))
 
 
 def get_change_status(new_entry_list, old_entry_list):
@@ -35,9 +55,8 @@ def get_change_status(new_entry_list, old_entry_list):
   except StopIteration:
     e_old = None
   path_for_sorting_old = e_old.path_for_sorting() if e_old else None
+  top_dir_delete_change_path = None
   while True:
-    print 'new: ' + (e_new.path if e_new else 'None')
-    print 'old: ' + (e_old.path if e_old else 'None')
     if path_for_sorting_new == path_for_sorting_old:
       if e_new.is_dir and e_old.is_dir:
         content_status = CONTENT_STATUS_NO_CHANGE
@@ -89,6 +108,27 @@ def get_change_status(new_entry_list, old_entry_list):
       except StopIteration:
         e_old = None
       path_for_sorting_old = e_old.path_for_sorting() if e_old else None
+
+    # fill parent_change_path
+    current_change_path = next(reversed(result))
+    current_change = result[current_change_path]
+    print current_change_path
+    if top_dir_delete_change_path:
+      print os.path.relpath(current_change_path, top_dir_delete_change_path)
+      if ('..' in
+          os.path.relpath(current_change_path, top_dir_delete_change_path)):
+        # current change path is in a different dir tree
+        top_dir_delete_change_path = None
+      else:
+        current_change.parent_change_path = top_dir_delete_change_path
+
+    if not top_dir_delete_change_path:
+      if (current_change.old_entry and current_change.old_entry.is_dir and
+          current_change.content_status in [
+            CONTENT_STATUS_DELETED,
+            CONTENT_STATUS_TO_FILE]):
+        top_dir_delete_change_path = current_change_path
+
 
     if e_old is None and e_new is None:
       break

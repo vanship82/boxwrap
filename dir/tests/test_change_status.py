@@ -30,7 +30,7 @@ class TestFileEntry(unittest.TestCase):
     entries_old = file_entry.load_dir_recursively('.')
     result = change_status.get_change_status(entries_new, entries_old)
     for path, item in result.iteritems():
-      print '******************* %s, %s' % (item.path, item.content_status)
-      print '       new: %s' % item.new_entry
-      print '       old: %s' % item.old_entry
+      if item.parent_change_path:
+        continue
+      print item
 
