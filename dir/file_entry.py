@@ -7,6 +7,7 @@ import traceback
 import cStringIO
 
 from util import i18n
+from util import util
 
 
 class FileEntry:
@@ -35,7 +36,7 @@ class FileEntry:
     return self.file_hash
 
   def path_for_sorting(self):
-    return self.path.replace(os.pathsep, '\1')
+    return util.path_for_sorting(self.path)
 
   def to_csv(self):
     output = cStringIO.StringIO()

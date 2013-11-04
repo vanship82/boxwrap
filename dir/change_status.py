@@ -2,6 +2,7 @@ import collections
 import os
 
 from dir import file_entry
+from util import util
 
 CONTENT_STATUS_NO_CHANGE = 0
 CONTENT_STATUS_FILE_MODIFIED = 1
@@ -45,15 +46,9 @@ def get_change_status(new_entry_list, old_entry_list):
   # Pass 1: get content change status
   i_new = iter(new_entry_list)
   i_old = iter(old_entry_list)
-  try:
-    e_new = i_new.next()
-  except StopIteration:
-    e_new = None
+  e_new = util.get_next(i_new)
   path_for_sorting_new = e_new.path_for_sorting() if e_new else None
-  try:
-    e_old = i_old.next()
-  except StopIteration:
-    e_old = None
+  e_old = util.get_next(i_old)
   path_for_sorting_old = e_old.path_for_sorting() if e_old else None
   top_dir_delete_change_path = None
   while True:
@@ -76,15 +71,9 @@ def get_change_status(new_entry_list, old_entry_list):
 
       result[e_new.path] = ChangeStatus(
           e_new.path, e_new, e_old, content_status)
-      try:
-        e_new = i_new.next()
-      except StopIteration:
-        e_new = None
+      e_new = util.get_next(i_new)
       path_for_sorting_new = e_new.path_for_sorting() if e_new else None
-      try:
-        e_old = i_old.next()
-      except StopIteration:
-        e_old = None
+      e_old = util.get_next(i_old)
       path_for_sorting_old = e_old.path_for_sorting() if e_old else None
 
     elif (path_for_sorting_new is not None and
