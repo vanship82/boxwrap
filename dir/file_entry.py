@@ -20,6 +20,7 @@ class FileEntry:
     self.size = size
     self.last_modified_time = last_modified_time
     self.file_hash = file_hash
+    self.tmp_file = None
 
   def calculate_hash(self, overwrite=False):
     if self.is_dir:

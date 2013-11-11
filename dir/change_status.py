@@ -101,9 +101,7 @@ def get_change_status(new_entry_list, old_entry_list):
     # fill parent_change_path
     current_change_path = next(reversed(result))
     current_change = result[current_change_path]
-    print current_change_path
     if top_dir_delete_change_path:
-      print os.path.relpath(current_change_path, top_dir_delete_change_path)
       if ('..' in
           os.path.relpath(current_change_path, top_dir_delete_change_path)):
         # current change path is in a different dir tree
@@ -118,9 +116,9 @@ def get_change_status(new_entry_list, old_entry_list):
             CONTENT_STATUS_TO_FILE]):
         top_dir_delete_change_path = current_change_path
 
+    yield current_change
 
     if e_old is None and e_new is None:
       break
 
-  return result
 
