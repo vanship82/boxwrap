@@ -4,7 +4,7 @@ import unittest
 
 import cStringIO
 
-from dir import file_entry
+from sync import file_info
 
 _TEST_CASES_BASE_DIR = os.path.join(
     os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))),
@@ -13,7 +13,7 @@ _TEST_CASES_SRC = 'src'
 _TEST_CASES_DEST = 'dest'
 
 
-class TestFileEntry(unittest.TestCase):
+class TestFileInfo(unittest.TestCase):
 
   def setUp(self):
     self._old_cwd = os.getcwd()
@@ -22,9 +22,9 @@ class TestFileEntry(unittest.TestCase):
   def tearDown(self):
     os.chdir(self._old_cwd)
 
-  def test_load_dir_recursively(self):
-    file_entries = file_entry.load_dir_recursively(_TEST_CASES_SRC)
-    expected_file_entries_from_csv = file_entry.load_csv(
+  def test_load_dir_recursively_and_sort(self):
+    file_entries = file_info.load_dir_recursively_and_sort(_TEST_CASES_SRC)
+    expected_file_entries_from_csv = file_info.load_csv(
         open('expected_src_file_entries.csv', 'r'))
     self.assertEqual(len(expected_file_entries_from_csv), len(file_entries))
     for i in range(len(file_entries)):
@@ -33,10 +33,10 @@ class TestFileEntry(unittest.TestCase):
           expected_file_entries_from_csv[i], file_entries[i])
 
   def test_csv_read_write(self):
-    file_entries = file_entry.load_dir_recursively(_TEST_CASES_SRC)
+    file_entries = file_info.load_dir_recursively_and_sort(_TEST_CASES_SRC)
     output = cStringIO.StringIO()
-    file_entry.write_sorted_list_to_csv(file_entries, output)
-    file_entries_from_csv = file_entry.load_csv(
+    file_info.write_sorted_list_to_csv(file_entries, output)
+    file_entries_from_csv = file_info.load_csv(
         cStringIO.StringIO(output.getvalue()))
     self.assertEqual(len(file_entries), len(file_entries_from_csv))
     for i in range(len(file_entries)):

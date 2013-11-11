@@ -1,7 +1,7 @@
 import collections
 import os
 
-from dir import file_entry
+from sync import file_info
 from util import util
 
 CONTENT_STATUS_NO_CHANGE = 0
@@ -12,7 +12,7 @@ CONTENT_STATUS_NEW = 4
 CONTENT_STATUS_DELETED = 5
 
 
-class ChangeStatus:
+class ChangeEntry:
 
   def __init__(self, path, new_entry, old_entry, content_status,
                parent_change_path=None):
@@ -39,8 +39,7 @@ class ChangeStatus:
             ('parent_change: %s' % self.parent_change_path
                 if self.parent_change_path else '')))
 
-
-def get_change_status(new_entry_list, old_entry_list):
+def get_change_entry(new_entry_list, old_entry_list):
   result = collections.OrderedDict()
 
   # Pass 1: get content change status
@@ -69,7 +68,7 @@ def get_change_status(new_entry_list, old_entry_list):
         else:
           content_status = CONTENT_STATUS_NO_CHANGE
 
-      result[e_new.path] = ChangeStatus(
+      result[e_new.path] = ChangeEntry(
           e_new.path, e_new, e_old, content_status)
       e_new = util.get_next(i_new)
       path_for_sorting_new = e_new.path_for_sorting() if e_new else None
@@ -79,7 +78,7 @@ def get_change_status(new_entry_list, old_entry_list):
     elif (path_for_sorting_new is not None and
         (path_for_sorting_new < path_for_sorting_old or
           path_for_sorting_old is None)):
-      result[e_new.path] = ChangeStatus(
+      result[e_new.path] = ChangeEntry(
           e_new.path, e_new, None, CONTENT_STATUS_NEW)
       try:
         e_new = i_new.next()
@@ -90,7 +89,7 @@ def get_change_status(new_entry_list, old_entry_list):
     elif (path_for_sorting_old is not None and
         (path_for_sorting_new > path_for_sorting_old or
           path_for_sorting_new is None)):
-      result[e_old.path] = ChangeStatus(
+      result[e_old.path] = ChangeEntry(
           e_old.path, None, e_old, CONTENT_STATUS_DELETED)
       try:
         e_old = i_old.next()
@@ -116,7 +115,7 @@ def get_change_status(new_entry_list, old_entry_list):
             CONTENT_STATUS_TO_FILE]):
         top_dir_delete_change_path = current_change_path
 
-    yield current_change
+    yield current_change_path, current_change
 
     if e_old is None and e_new is None:
       break

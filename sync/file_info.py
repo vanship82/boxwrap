@@ -10,7 +10,7 @@ from util import i18n
 from util import util
 
 
-class FileEntry:
+class FileInfo:
 
   def __init__(
       self, path, is_dir, mode, size, last_modified_time, file_hash=None):
@@ -69,7 +69,7 @@ def load_file_entry(path):
   try:
     stat = os.stat(path)
     is_dir = os.path.isdir(path)
-    return FileEntry(
+    return FileInfo(
         path,
         is_dir,
         stat.st_mode,
@@ -80,7 +80,7 @@ def load_file_entry(path):
 
 
 def load_from_csv_row(row):
-  return FileEntry(
+  return FileInfo(
       row[0],
       row[1] == '1',
       int(row[2]),
@@ -99,7 +99,7 @@ def load_csv(f):
   return result
 
 
-def load_dir_recursively(dir_path):
+def load_dir_recursively_and_sort(dir_path):
   file_entries = []
   for root, dirs, files in os.walk(dir_path):
     file_entries.append(load_file_entry(root))
