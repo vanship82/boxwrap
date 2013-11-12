@@ -55,65 +55,78 @@ class FileInfo:
     return (
         'path: %s, is_dir: %s, mode: 0%o size: %s, last_modified_time: %s, '
         'file_hash: %s' % (
-          self.path,
-          self.is_dir,
-          self.mode,
-          self.size,
-          self.last_modified_time,
-          self.file_hash))
+            self.path,
+            self.is_dir,
+            self.mode,
+            self.size,
+            self.last_modified_time,
+            self.file_hash))
 
+  @staticmethod
+  def load_file_info(path):
+    if not os.path.exists(path):
+      return None
+    try:
+      stat = os.stat(path)
+      is_dir = os.path.isdir(path)
+      return FileInfo(
+          path,
+          is_dir,
+          stat.st_mode,
+          stat.st_size if not is_dir else None,
+          stat.st_mtime)
+    except:
+      return None
 
-def load_file_entry(path):
-  if not os.path.exists(path):
-    return None
-  try:
-    stat = os.stat(path)
-    is_dir = os.path.isdir(path)
+  @staticmethod
+  def load_from_csv_row(row):
     return FileInfo(
-        path,
-        is_dir,
-        stat.st_mode,
-        stat.st_size if not is_dir else None,
-        stat.st_mtime)
-  except:
-    return None
+        row[0],
+        row[1] == '1',
+        int(row[2]),
+        int(row[3]) if int(row[3]) >= 0 else None,
+        float(row[4]),
+        row[5] or None)
 
 
-def load_from_csv_row(row):
-  return FileInfo(
-      row[0],
-      row[1] == '1',
-      int(row[2]),
-      int(row[3]) if int(row[3]) >= 0 else None,
-      float(row[4]),
-      row[5] or None)
+# Sorted list of file info
+class FileInfoList:
 
+  def __init__(self, file_info_list):
+    self._file_info_list = FileInfoList._sort(list(file_info_list))
 
-def load_csv(f):
-  reader = i18n.UnicodeReader(f)
-  result = []
-  for row in reader:
-    if len(row) < 6:
-      continue
-    result.append(load_from_csv_row(row))
-  return result
+  def file_info_list(self):
+    return self._file_info_list
 
+  def write_to_csv(self, f):
+    for entry in self._file_info_list:
+      entry.calculate_hash()
+      f.write(entry.to_csv())
+      f.write('\n')
 
-def load_dir_recursively_and_sort(dir_path):
-  file_entries = []
-  for root, dirs, files in os.walk(dir_path):
-    file_entries.append(load_file_entry(root))
-    for f in files:
-      file_entries.append(load_file_entry(os.path.join(root, f)))
-  file_entries.sort(
-      key=lambda file_entry: file_entry.path_for_sorting())
-  return file_entries
+  @staticmethod
+  def _sort(file_info_list):
+    file_info_list.sort(
+        key=lambda file_info: file_info.path_for_sorting())
+    return file_info_list
 
+  @staticmethod
+  def load_from_csv(f):
+    reader = i18n.UnicodeReader(f)
+    file_info_list = []
+    for row in reader:
+      if len(row) < 6:
+        continue
+      file_info_list.append(FileInfo.load_from_csv_row(row))
+    return FileInfoList(file_info_list)
 
-def write_sorted_list_to_csv(sorted_file_entry_list, f):
-  for entry in sorted_file_entry_list:
-    entry.calculate_hash()
-    f.write(entry.to_csv())
-    f.write('\n')
-
+  # recursively
+  @staticmethod
+  def load_from_dir(dir_path):
+    file_info_list = []
+    for root, dirs, files in os.walk(dir_path):
+      file_info_list.append(FileInfo.load_file_info(root))
+      for f in files:
+        file_info_list.append(FileInfo.load_file_info(os.path.join(root, f)))
+    return FileInfoList(file_info_list)
 

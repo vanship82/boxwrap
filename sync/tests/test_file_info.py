@@ -22,28 +22,35 @@ class TestFileInfo(unittest.TestCase):
   def tearDown(self):
     os.chdir(self._old_cwd)
 
-  def test_load_dir_recursively_and_sort(self):
-    file_entries = file_info.load_dir_recursively_and_sort(_TEST_CASES_SRC)
-    expected_file_entries_from_csv = file_info.load_csv(
-        open('expected_src_file_entries.csv', 'r'))
-    self.assertEqual(len(expected_file_entries_from_csv), len(file_entries))
-    for i in range(len(file_entries)):
-      file_entries[i].calculate_hash()
-      self._assert_file_entries_valid_and_equal(
-          expected_file_entries_from_csv[i], file_entries[i])
+  def test_load_from_dir(self):
+    file_info_list = (
+        file_info.FileInfoList.load_from_dir(_TEST_CASES_SRC).file_info_list())
+    expected_file_info_list_from_csv =  (
+        file_info.FileInfoList
+            .load_from_csv(open('expected_src_file_info_list.csv', 'r'))
+            .file_info_list())
+    self.assertEqual(len(expected_file_info_list_from_csv),
+                     len(file_info_list))
+    for i in range(len(file_info_list)):
+      file_info_list[i].calculate_hash()
+      self._assert_file_info_list_valid_and_equal(
+          expected_file_info_list_from_csv[i], file_info_list[i])
 
   def test_csv_read_write(self):
-    file_entries = file_info.load_dir_recursively_and_sort(_TEST_CASES_SRC)
+    file_info_list = file_info.FileInfoList.load_from_dir(_TEST_CASES_SRC)
     output = cStringIO.StringIO()
-    file_info.write_sorted_list_to_csv(file_entries, output)
-    file_entries_from_csv = file_info.load_csv(
+    file_info_list.write_to_csv(output)
+    file_info_list_from_csv = file_info.FileInfoList.load_from_csv(
         cStringIO.StringIO(output.getvalue()))
-    self.assertEqual(len(file_entries), len(file_entries_from_csv))
-    for i in range(len(file_entries)):
-      self._assert_file_entries_valid_and_equal(
-          file_entries[i], file_entries_from_csv[i])
 
-  def _assert_file_entries_valid_and_equal(self, e1, e2):
+    file_info_list = file_info_list.file_info_list()
+    file_info_list_from_csv = file_info_list_from_csv.file_info_list()
+    self.assertEqual(len(file_info_list), len(file_info_list_from_csv))
+    for i in range(len(file_info_list)):
+      self._assert_file_info_list_valid_and_equal(
+          file_info_list[i], file_info_list_from_csv[i])
+
+  def _assert_file_info_list_valid_and_equal(self, e1, e2):
     self.assertEqual(e1.path, e2.path)
     self.assertEqual(e1.is_dir, e2.is_dir)
     self.assertEqual(e1.mode, e2.mode)
