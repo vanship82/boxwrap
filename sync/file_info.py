@@ -94,9 +94,16 @@ class FileInfoList:
 
   def __init__(self, file_info_list):
     self._file_info_list = _sort_file_info_list(list(file_info_list))
+    self._fi_dict = {(x.path, x) for x in self._file_info_list}
 
   def file_info_list(self):
     return self._file_info_list
+
+  def has_file(self, path):
+    return self._fi_dict.has_key(path)
+
+  def get(self, path):
+    return self._fi_dict[path]
 
   def write_to_csv(self, f):
     for entry in self._file_info_list:
