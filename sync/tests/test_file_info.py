@@ -24,9 +24,9 @@ class TestFileInfo(unittest.TestCase):
 
   def test_load_from_dir(self):
     file_info_list = (
-        file_info.FileInfoList.load_from_dir(_TEST_CASES_SRC).file_info_list())
+        file_info.load_from_dir(_TEST_CASES_SRC).file_info_list())
     expected_file_info_list_from_csv =  (
-        file_info.FileInfoList
+        file_info
             .load_from_csv(open('expected_src_file_info_list.csv', 'r'))
             .file_info_list())
     self.assertEqual(len(expected_file_info_list_from_csv),
@@ -37,10 +37,10 @@ class TestFileInfo(unittest.TestCase):
           expected_file_info_list_from_csv[i], file_info_list[i])
 
   def test_csv_read_write(self):
-    file_info_list = file_info.FileInfoList.load_from_dir(_TEST_CASES_SRC)
+    file_info_list = file_info.load_from_dir(_TEST_CASES_SRC)
     output = cStringIO.StringIO()
     file_info_list.write_to_csv(output)
-    file_info_list_from_csv = file_info.FileInfoList.load_from_csv(
+    file_info_list_from_csv = file_info.load_from_csv(
         cStringIO.StringIO(output.getvalue()))
 
     file_info_list = file_info_list.file_info_list()
