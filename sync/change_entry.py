@@ -14,11 +14,11 @@ CONTENT_STATUS_DELETED = 5
 
 class ChangeEntry:
 
-  def __init__(self, path, new_entry, old_entry, content_status,
+  def __init__(self, path, cur_info, old_info, content_status,
                parent_change_path=None):
     self.path = path
-    self.new_entry = new_entry
-    self.old_entry = old_entry
+    self.cur_info = cur_info
+    self.old_info = old_info
     self.content_status = content_status
     self.parent_change_path = parent_change_path
 
@@ -39,85 +39,61 @@ class ChangeEntry:
             ('parent_change: %s' % self.parent_change_path
                 if self.parent_change_path else '')))
 
-def get_change_entry(new_entry_list, old_entry_list):
-  result = collections.OrderedDict()
 
-  # Pass 1: get content change status
-  i_new = iter(new_entry_list)
-  i_old = iter(old_entry_list)
-  e_new = util.get_next(i_new)
-  path_for_sorting_new = e_new.path_for_sorting() if e_new else None
-  e_old = util.get_next(i_old)
-  path_for_sorting_old = e_old.path_for_sorting() if e_old else None
+def get_changes(new_file_info_list, old_file_info_list):
+  # TODO: add permission change status
   top_dir_delete_change_path = None
-  while True:
-    if path_for_sorting_new == path_for_sorting_old:
-      if e_new.is_dir and e_old.is_dir:
+  for e_new_info, e_old_info in util.merge_two_iterators(
+      iter(new_file_info_list.file_info_list()),
+      iter(old_file_info_list.file_info_list()),
+      key_func=lambda x: x.path_for_sorting()):
+                          
+    if e_new_info and e_old_info:
+      if e_new_info.is_dir and e_old_info.is_dir:
         content_status = CONTENT_STATUS_NO_CHANGE
-      elif e_new.is_dir and not e_old.is_dir:
+      elif e_new_info.is_dir and not e_old_info.is_dir:
         content_status = CONTENT_STATUS_TO_DIR
-      elif not e_new.is_dir and e_old.is_dir:
+      elif not e_new_info.is_dir and e_old_info.is_dir:
         content_status = CONTENT_STATUS_TO_FILE
       else:
-        if (e_new.size == e_old.size and
-            e_new.last_modified_time == e_old.last_modified_time):
+        if (e_new_info.size == e_old_info.size and
+            e_new_info.last_modified_time == e_old_info.last_modified_time):
           content_status = CONTENT_STATUS_NO_CHANGE
-        elif (e_new.size != e_old.size or
-            e_new.calculate_hash() != e_old.calculate_hash()):
+        elif (e_new_info.size != e_old_info.size or
+            e_new_info.calculate_hash() != e_old_info.calculate_hash()):
           content_status = CONTENT_STATUS_FILE_MODIFIED
         else:
           content_status = CONTENT_STATUS_NO_CHANGE
 
-      result[e_new.path] = ChangeEntry(
-          e_new.path, e_new, e_old, content_status)
-      e_new = util.get_next(i_new)
-      path_for_sorting_new = e_new.path_for_sorting() if e_new else None
-      e_old = util.get_next(i_old)
-      path_for_sorting_old = e_old.path_for_sorting() if e_old else None
+      path = e_new_info.path
+      change = ChangeEntry(
+          e_new_info.path, e_new_info, e_old_info, content_status)
 
-    elif (path_for_sorting_new is not None and
-        (path_for_sorting_new < path_for_sorting_old or
-          path_for_sorting_old is None)):
-      result[e_new.path] = ChangeEntry(
-          e_new.path, e_new, None, CONTENT_STATUS_NEW)
-      try:
-        e_new = i_new.next()
-      except StopIteration:
-        e_new = None
-      path_for_sorting_new = e_new.path_for_sorting() if e_new else None
+    elif e_new_info and not e_old_info:
+      path = e_new_info.path
+      change = ChangeEntry(
+          e_new_info.path, e_new_info, None, CONTENT_STATUS_NEW)
 
-    elif (path_for_sorting_old is not None and
-        (path_for_sorting_new > path_for_sorting_old or
-          path_for_sorting_new is None)):
-      result[e_old.path] = ChangeEntry(
-          e_old.path, None, e_old, CONTENT_STATUS_DELETED)
-      try:
-        e_old = i_old.next()
-      except StopIteration:
-        e_old = None
-      path_for_sorting_old = e_old.path_for_sorting() if e_old else None
+    elif not e_new_info and e_old_info:
+      path = e_old_info.path
+      change = ChangeEntry(
+          e_old_info.path, None, e_old_info, CONTENT_STATUS_DELETED)
 
     # fill parent_change_path
-    current_change_path = next(reversed(result))
-    current_change = result[current_change_path]
     if top_dir_delete_change_path:
-      if ('..' in
-          os.path.relpath(current_change_path, top_dir_delete_change_path)):
+      if '..' in os.path.relpath(path, top_dir_delete_change_path):
         # current change path is in a different dir tree
         top_dir_delete_change_path = None
       else:
-        current_change.parent_change_path = top_dir_delete_change_path
+        change.parent_change_path = top_dir_delete_change_path
 
     if not top_dir_delete_change_path:
-      if (current_change.old_entry and current_change.old_entry.is_dir and
-          current_change.content_status in [
-            CONTENT_STATUS_DELETED,
-            CONTENT_STATUS_TO_FILE]):
-        top_dir_delete_change_path = current_change_path
+      if (change.old_info and change.old_info.is_dir and
+          change.content_status in [
+              CONTENT_STATUS_DELETED,
+              CONTENT_STATUS_TO_FILE]):
+        top_dir_delete_change_path = path
 
-    yield current_change_path, current_change
-
-    if e_old is None and e_new is None:
-      break
+    yield path, change
 
 

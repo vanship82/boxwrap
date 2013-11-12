@@ -25,10 +25,10 @@ class TestFileEntry(unittest.TestCase):
 
   def test_change_entry(self):
     os.chdir(os.path.join(_TEST_CASES_BASE_DIR, _TEST_CASES_DEST))
-    entries_new = file_info.load_dir_recursively_and_sort('.')
+    fil_new = file_info.load_from_dir('.')
     os.chdir(os.path.join(_TEST_CASES_BASE_DIR, _TEST_CASES_SRC))
-    entries_old = file_info.load_dir_recursively_and_sort('.')
-    for path, item in change_entry.get_change_entry(entries_new, entries_old):
+    fil_old = file_info.load_from_dir('.')
+    for path, item in change_entry.get_changes(fil_new, fil_old):
       if item.parent_change_path:
         continue
       print item
