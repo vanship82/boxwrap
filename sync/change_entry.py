@@ -40,12 +40,12 @@ class ChangeEntry:
                 if self.parent_change_path else '')))
 
 
-def get_changes(new_file_info_list, old_file_info_list):
+def get_changes(new_dir_info, old_dir_info):
   # TODO: add permission change status
   top_dir_delete_change_path = None
   for e_new_info, e_old_info in util.merge_two_iterators(
-      iter(new_file_info_list.file_info_list()),
-      iter(old_file_info_list.file_info_list()),
+      iter(new_dir_info.file_info_list()),
+      iter(old_dir_info.file_info_list()),
       key_func=lambda x: x.path_for_sorting()):
                           
     if e_new_info and e_old_info:

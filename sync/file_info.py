@@ -89,12 +89,16 @@ def load_from_csv_row(row):
       row[5] or None)
 
 
-# Sorted list of file info
-class FileInfoList:
+# A sorted list of file info in the directory
+class DirInfo:
 
-  def __init__(self, file_info_list):
+  def __init__(self, base_dir, file_info_list):
     self._file_info_list = _sort_file_info_list(list(file_info_list))
     self._fi_dict = {(x.path, x) for x in self._file_info_list}
+    self._base_dir = base_dir
+
+  def base_dir(self):
+    return self._base_dir
 
   def file_info_list(self):
     return self._file_info_list
@@ -118,22 +122,22 @@ def _sort_file_info_list(file_info_list):
   return file_info_list
 
 
-def load_from_csv(f):
+def load_dir_info_from_csv(f, base_dir):
   reader = i18n.UnicodeReader(f)
   file_info_list = []
   for row in reader:
     if len(row) < 6:
       continue
     file_info_list.append(load_from_csv_row(row))
-  return FileInfoList(file_info_list)
+  return DirInfo(base_dir, file_info_list)
 
 
 # recursively
-def load_from_dir(dir_path):
+def load_dir_info(dir_path):
   file_info_list = []
   for root, dirs, files in os.walk(dir_path):
     file_info_list.append(load_file_info(root))
     for f in files:
       file_info_list.append(load_file_info(os.path.join(root, f)))
-  return FileInfoList(file_info_list)
+  return DirInfo(dir_path, file_info_list)
 
