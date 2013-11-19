@@ -141,3 +141,6 @@ def load_dir_info(dir_path):
       file_info_list.append(load_file_info(os.path.join(root, f)))
   return DirInfo(dir_path, file_info_list)
 
+def empty_dir_info(dir_path):
+  return DirInfo(dir_path, [])
+

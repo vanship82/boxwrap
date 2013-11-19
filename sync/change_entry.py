@@ -47,7 +47,6 @@ def get_changes(new_dir_info, old_dir_info):
       iter(new_dir_info.file_info_list()),
       iter(old_dir_info.file_info_list()),
       key_func=lambda x: x.path_for_sorting()):
-                          
     if e_new_info and e_old_info:
       if e_new_info.is_dir and e_old_info.is_dir:
         content_status = CONTENT_STATUS_NO_CHANGE
