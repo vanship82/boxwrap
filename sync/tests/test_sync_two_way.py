@@ -10,6 +10,7 @@ from sync import sync_one_way
 from sync import sync_two_way
 from sync import file_info
 from sync import change_entry
+from util import util
 
 _TEST_TMP_BASE_DIR = os.path.join(
     os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))),
@@ -87,12 +88,12 @@ class TestMergeFile(unittest.TestCase):
         dir_path,
         [sync_file_info.file_info for sync_file_info in sync_file_info_list])
 
-  def _get_sync_dir_info(self, dir_path, sync_change_od):
+  def _get_dir_info_from_sync_change_od(self, dir_path, sync_change_od):
     file_info_list = []
-    for sync_change in sync_change_od:
+    for sync_change in sync_change_od.itervalues():
       sync_file_info = sync_one_way.apply_sync_change_to_file_info(sync_change)
       if sync_file_info:
-        file_info_list.append(sync-file_info.file_info)
+        file_info_list.append(sync_file_info.file_info)
     return file_info.DirInfo(dir_path, file_info_list)
 
   def _assertFileContent(self, content, file_path):
@@ -101,8 +102,8 @@ class TestMergeFile(unittest.TestCase):
 
   def _assertDirInfoEqual(self, dir_info1, dir_info2):
     for fi1, fi2 in util.merge_two_iterators(
-        iter(dir_info1.file_info_list),
-        iter(dir_info2.file_info_list),
+        iter(dir_info1.file_info_list()),
+        iter(dir_info2.file_info_list()),
         key_func=lambda x: x.path_for_sorting()):
       self.assertIsNotNone(fi1)
       self.assertIsNotNone(fi2)
@@ -120,8 +121,8 @@ class TestMergeFile(unittest.TestCase):
     new_sc_od1, new_sc_od2 = sync_two_way.merge(sync_change_od1,
                                                 sync_change_od2)
     return (new_sc_od1, new_sc_od2,
-            _get_sync_dir_info(new_sc_od1),
-            _get_sync_dir_info(new_sc_od2))
+            self._get_dir_info_from_sync_change_od(_TEST_DIR1, new_sc_od1),
+            self._get_dir_info_from_sync_change_od(_TEST_DIR2, new_sc_od2))
 
   def testInitialSync(self):
     new_sc_od1, new_sc_od2, new_di1, new_di2 = self._merge_for_test()
