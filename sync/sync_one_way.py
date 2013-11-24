@@ -56,6 +56,13 @@ def generate_sync_changes(src, dest_dir_info, tmp_dir):
     yield path, SyncChangeEntry(change, tmp_file)
 
 
+def get_sync_change_od(src, dest_dir_info, tmp_dir):
+  sync_changes = collections.OrderedDict()
+  for path, sync_change in generate_sync_changes(src, dest_dir_info, tmp_dir):
+    sync_changes[path] = sync_change
+  return sync_changes
+
+
 def apply_sync_change_to_file_info(sync_change):
   change = sync_change.change
   if change.parent_change_path:
