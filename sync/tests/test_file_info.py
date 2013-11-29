@@ -23,12 +23,13 @@ class TestFileInfo(unittest.TestCase):
     os.chdir(self._old_cwd)
 
   def test_load_dir_info(self):
-    file_info_list = file_info.load_dir_info(_TEST_CASES_SRC).file_info_list()
-    expected_file_info_list_from_csv =  (
+    file_info_list = [x for x in
+        file_info.load_dir_info(_TEST_CASES_SRC).flat_file_info_list()]
+    expected_file_info_list_from_csv =  [x for x in
         file_info
             .load_dir_info_from_csv(
                 open('expected_src_file_info_list.csv', 'r'), _TEST_CASES_SRC)
-            .file_info_list())
+            .flat_file_info_list()]
     self.assertEqual(len(expected_file_info_list_from_csv),
                      len(file_info_list))
     for i in range(len(file_info_list)):
@@ -43,8 +44,9 @@ class TestFileInfo(unittest.TestCase):
     dir_info_from_csv = file_info.load_dir_info_from_csv(
         cStringIO.StringIO(output.getvalue()), _TEST_CASES_SRC)
 
-    file_info_list = dir_info.file_info_list()
-    file_info_list_from_csv = dir_info_from_csv.file_info_list()
+    file_info_list = [x for x in dir_info.flat_file_info_list()]
+    file_info_list_from_csv = [
+        x for x in dir_info_from_csv.flat_file_info_list()]
     self.assertEqual(len(file_info_list), len(file_info_list_from_csv))
     for i in range(len(file_info_list)):
       self._assert_file_info_list_valid_and_equal(
