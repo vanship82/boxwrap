@@ -204,7 +204,7 @@ def _sorted_file_info_list_to_dir_info(
   base_dir_info_dict = {}
   while i < len(sorted_file_info_list):
     fi = sorted_file_info_list[i]
-    if '..' in os.path.relpath(base, fi.path):
+    if '..' in os.path.relpath(fi.path, base):
       break
     if fi.is_dir:
       base_file_info_list.append(fi)
