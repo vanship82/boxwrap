@@ -28,7 +28,8 @@ class TestFileEntry(unittest.TestCase):
     di_new = file_info.load_dir_info('.')
     os.chdir(os.path.join(_TEST_CASES_BASE_DIR, _TEST_CASES_SRC))
     di_old = file_info.load_dir_info('.')
-    for path, item in change_entry.get_changes(di_new, di_old):
+    for item in (
+        change_entry.get_dir_changes(di_new, di_old).flat_changes()):
       if item.parent_change_path:
         continue
       print item
