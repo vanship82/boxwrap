@@ -51,6 +51,19 @@ class FileInfo:
       str(self.file_hash) if self.file_hash else ''])
     return output.getvalue().strip('\r\n')
 
+  def is_modified(self, other):
+    if self.is_dir != other.is_dir:
+      return True
+    if self.is_dir:
+      return False
+    if (self.size == other.size and
+        self.last_modified_time == other.last_modified_time):
+      return False
+    elif (self.size != other.size or
+        self.calculate_hash() != other.calculate_hash()):
+      return True
+    return False
+
   def __str__(self):
     return (
         'path: %s, is_dir: %s, mode: 0%o size: %s, last_modified_time: %s, '

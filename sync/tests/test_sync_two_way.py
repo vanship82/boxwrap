@@ -90,7 +90,7 @@ class TestMergeFile(unittest.TestCase):
 
   def _get_dir_info_from_sync_change_od(self, dir_path, sync_change_od):
     file_info_list = []
-    for sync_change in sync_change_od.itervalues():
+    for sync_two_way_change in sync_change_od.itervalues():
       sync_file_info = sync_one_way.apply_sync_change_to_file_info(sync_change)
       if sync_file_info:
         file_info_list.append(sync_file_info.file_info)
@@ -109,8 +109,7 @@ class TestMergeFile(unittest.TestCase):
       self.assertIsNotNone(fi2)
       self.assertEquals(fi1.path, fi2.path)
       self.assertEquals(fi1.is_dir, fi2.is_dir)
-      self.assertEquals(fi1.size, fi2.size)
-      self.assertEquals(fi1.file_hash, fi2.file_hash)
+      self.assertFalse(fi1.is_modified(fi2))
 
   def _merge_for_test(self):
     sync_change_od1 = sync_one_way.get_sync_change_od(
@@ -142,9 +141,52 @@ class TestMergeFile(unittest.TestCase):
 
     self._assertDirInfoEqual(new_di1, new_di2)
 
-  def testSyncNewFile(self):
+  def testSyncNewFileLeft(self):
     f = open(os.path.join(_TEST_DIR1, _TEST_CASE_FILE_NEW), 'w')
     f.write('new')
+    f.close()
+
+    new_sc_od1, new_sc_od2, new_di1, new_di2 = self._merge_for_test()
+
+    self.assertEquals(3, len(new_sc_od1))
+    self.assertEquals(
+        change_entry.CONTENT_STATUS_NEW,
+        new_sc_od1[os.path.join('.', _TEST_CASE_FILE_NEW)]
+            .change.content_status)
+    self.assertEquals(3, len(new_sc_od2))
+    self.assertEquals(
+        change_entry.CONTENT_STATUS_NEW,
+        new_sc_od2[os.path.join('.', _TEST_CASE_FILE_NEW)]
+            .change.content_status)
+
+    self._assertDirInfoEqual(new_di1, new_di2)
+
+  def testSyncNewFileRight(self):
+    f = open(os.path.join(_TEST_DIR2, _TEST_CASE_FILE_NEW), 'w')
+    f.write('new')
+    f.close()
+
+    new_sc_od1, new_sc_od2, new_di1, new_di2 = self._merge_for_test()
+
+    self.assertEquals(3, len(new_sc_od1))
+    self.assertEquals(
+        change_entry.CONTENT_STATUS_NEW,
+        new_sc_od1[os.path.join('.', _TEST_CASE_FILE_NEW)]
+            .change.content_status)
+    self.assertEquals(3, len(new_sc_od2))
+    self.assertEquals(
+        change_entry.CONTENT_STATUS_NEW,
+        new_sc_od2[os.path.join('.', _TEST_CASE_FILE_NEW)]
+            .change.content_status)
+
+    self._assertDirInfoEqual(new_di1, new_di2)
+
+  def testSyncNewFileConflict(self):
+    f = open(os.path.join(_TEST_DIR1, _TEST_CASE_FILE_NEW), 'w')
+    f.write('new1')
+    f.close()
+    f = open(os.path.join(_TEST_DIR2, _TEST_CASE_FILE_NEW), 'w')
+    f.write('new2')
     f.close()
 
     new_sc_od1, new_sc_od2, new_di1, new_di2 = self._merge_for_test()

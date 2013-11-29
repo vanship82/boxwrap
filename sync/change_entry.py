@@ -55,11 +55,7 @@ def get_changes(new_dir_info, old_dir_info):
       elif not e_new_info.is_dir and e_old_info.is_dir:
         content_status = CONTENT_STATUS_TO_FILE
       else:
-        if (e_new_info.size == e_old_info.size and
-            e_new_info.last_modified_time == e_old_info.last_modified_time):
-          content_status = CONTENT_STATUS_NO_CHANGE
-        elif (e_new_info.size != e_old_info.size or
-            e_new_info.calculate_hash() != e_old_info.calculate_hash()):
+        if e_new_info.is_modified(e_old_info):
           content_status = CONTENT_STATUS_FILE_MODIFIED
         else:
           content_status = CONTENT_STATUS_NO_CHANGE
