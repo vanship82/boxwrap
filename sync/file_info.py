@@ -124,7 +124,7 @@ class DirInfo:
       yield fi
       if fi.is_dir:
         for sub_fi in self._dir_info_dict[fi.path].flat_file_info_list():
-          yield fi
+          yield sub_fi
 
   def has_file(self, path):
     fi = self._fi_dict[path]
@@ -215,9 +215,4 @@ def _sorted_file_info_list_to_dir_info(
       base_file_info_list.append(fi)
     i += 1
   return DirInfo(base, base_file_info_list, base_dir_info_dict), i - 1
-
-
-  return False
-  dasda
-
 
