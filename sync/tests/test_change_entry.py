@@ -14,7 +14,7 @@ _TEST_CASES_SRC = 'src'
 _TEST_CASES_DEST = 'dest'
 
 
-class TestFileEntry(unittest.TestCase):
+class TestChangeEntry(unittest.TestCase):
 
   def setUp(self):
     self._old_cwd = os.getcwd()
@@ -30,7 +30,7 @@ class TestFileEntry(unittest.TestCase):
     di_old = file_info.load_dir_info('.')
     for item in (
         change_entry.get_dir_changes(di_new, di_old).flat_changes()):
-      if item.parent_change_path:
+      if item.parent_change_path():
         continue
       print item
 

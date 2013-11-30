@@ -13,13 +13,15 @@ from util import util
 class FileInfo:
 
   def __init__(
-      self, path, is_dir, mode, size, last_modified_time, file_hash=None):
+      self, path, is_dir, mode, size, last_modified_time, file_hash=None,
+      tmp_file=None):
     self.path = path
     self.is_dir = is_dir
     self.mode = mode
     self.size = size
     self.last_modified_time = last_modified_time
     self.file_hash = file_hash
+    self.tmp_file = tmp_file
 
   def calculate_hash(self, overwrite=False):
     if self.is_dir:
@@ -73,6 +75,12 @@ class FileInfo:
             self.size,
             self.last_modified_time,
             self.file_hash))
+
+
+def copy_with_tmp_file(file_info, tmp_file):
+  return FileInfo(file_info.path, file_info.is_dir, file_info.mode,
+                  file_info.size, file_info.last_modified_time,
+                  file_hash=file_info.file_hash, tmp_file=tmp_file)
 
 
 def load_file_info(path):
@@ -190,6 +198,21 @@ def load_dir_info(dir_path):
       file_info_list.append(load_file_info(os.path.join(root, f)))
   dir_info, unused = _sorted_file_info_list_to_dir_info(
       dir_path, file_info_list, 0)
+  return dir_info
+
+
+# Load as relative path
+def load_rel_dir_info(dir_path):
+  old_cwd = os.getcwd()
+  os.chdir(dir_path)
+  dir_info = load_dir_info('.')
+  os.chdir(old_cwd)
+  return dir_info
+
+
+def load_dir_info_from_file_info_list(base_dir, file_info_list):
+  dir_info, unused = _sorted_file_info_list_to_dir_info(
+      base_dir, _sort_file_info_list(file_info_list), 0)
   return dir_info
 
 
