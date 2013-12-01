@@ -18,12 +18,13 @@ CONTENT_STATUS_DELETED = 5
 class ChangeEntry:
 
   def __init__(self, path, cur_info, old_info, content_status,
-               parent_dir_changes=None,
+               dir_changes=None, parent_dir_changes=None,
                dir_status=CONTENT_STATUS_UNSPECIFIED):
     self.path = path
     self.cur_info = cur_info
     self.old_info = old_info
     self.content_status = content_status
+    self.dir_changes = dir_changes
     self.parent_dir_changes = parent_dir_changes
     self.dir_status = dir_status
 
@@ -60,12 +61,11 @@ class ChangeEntry:
 
 class DirChanges:
 
-  def __init__(self, base_dir, dir_status, changes=None, dir_changes_dict=None,
+  def __init__(self, base_dir, dir_status, changes=None,
                parent_dir_changes=None):
     self._dir_status = dir_status
     self._changes = changes or []
     self._changes_dict = dict([(x.path, x) for x in self._changes])
-    self._dir_changes_dict = dir_changes_dict or {}
     self._base_dir = base_dir
     self._parent_dir_changes = parent_dir_changes
 
@@ -88,11 +88,8 @@ class DirChanges:
   def change(self, path):
     return self._changes_dict[path]
 
-  def put_dir_changes(self, dir_path, dir_changes):
-    self._dir_changes_dict[dir_path] = dir_changes
-
-  def dir_changes(self, dir_path):
-    return self._dir_changes_dict[dir_path]
+  def dir_changes(self, path):
+    return self._changes_dict[path].dir_changes
 
   def parent_dir_changes(self):
     return self._parent_dir_changes
@@ -102,7 +99,7 @@ class DirChanges:
       yield c
       if ((c.cur_info and c.cur_info.is_dir) or
           (c.old_info and c.old_info.is_dir)):
-        for sub_c in self._dir_changes_dict[c.path].flat_changes():
+        for sub_c in c.dir_changes.flat_changes():
           yield sub_c
 
 
@@ -132,20 +129,19 @@ def get_dir_changes(new_dir_info, old_dir_info, parent_dir_changes=None,
       key_func=lambda x: x.path_for_sorting()):
     dir_status = CONTENT_STATUS_UNSPECIFIED
     tmp_file = None
+    dir_changes = None
     if e_new_info and e_old_info:
       if e_new_info.is_dir and e_old_info.is_dir:
         dir_changes = get_dir_changes(new_dir_info.dir_info(e_new_info.path),
                                       old_dir_info.dir_info(e_old_info.path),
                                       parent_dir_changes=cur_dir_changes,
                                       root_dir=root_dir, tmp_dir=tmp_dir)
-        cur_dir_changes.put_dir_changes(e_new_info.path, dir_changes)
         content_status = CONTENT_STATUS_NO_CHANGE
         dir_status = dir_changes.dir_status()
       elif e_new_info.is_dir and not e_old_info.is_dir:
         dir_changes = get_dir_changes(new_dir_info.dir_info(e_new_info.path),
                                       None, parent_dir_changes=cur_dir_changes,
                                       root_dir=root_dir, tmp_dir=tmp_dir)
-        cur_dir_changes.put_dir_changes(e_new_info.path, dir_changes)
         content_status = CONTENT_STATUS_TO_DIR
         dir_status = dir_changes.dir_status()
       elif not e_new_info.is_dir and e_old_info.is_dir:
@@ -153,7 +149,6 @@ def get_dir_changes(new_dir_info, old_dir_info, parent_dir_changes=None,
                                       old_dir_info.dir_info(e_old_info.path),
                                       parent_dir_changes=cur_dir_changes,
                                       root_dir=root_dir, tmp_dir=tmp_dir)
-        cur_dir_changes.put_dir_changes(e_new_info.path, dir_changes)
         content_status = CONTENT_STATUS_TO_FILE
         dir_status = dir_changes.dir_status()
         if root_dir and tmp_dir:
@@ -171,7 +166,8 @@ def get_dir_changes(new_dir_info, old_dir_info, parent_dir_changes=None,
         e_new_info = file_info.copy_with_tmp_file(e_new_info, tmp_file)
       change = ChangeEntry(
           e_new_info.path, e_new_info, e_old_info, content_status,
-          parent_dir_changes=cur_dir_changes, dir_status=dir_status)
+          dir_changes=dir_changes, parent_dir_changes=cur_dir_changes,
+          dir_status=dir_status)
 
     elif e_new_info and not e_old_info:
       path = e_new_info.path
@@ -179,7 +175,6 @@ def get_dir_changes(new_dir_info, old_dir_info, parent_dir_changes=None,
         dir_changes = get_dir_changes(new_dir_info.dir_info(e_new_info.path),
                                       None, parent_dir_changes=cur_dir_changes,
                                       root_dir=root_dir, tmp_dir=tmp_dir)
-        cur_dir_changes.put_dir_changes(path, dir_changes)
         dir_status = dir_changes.dir_status()
       elif root_dir and tmp_dir:
         tmp_file = _copy_to_tmp_dir(root_dir, e_new_info.path, tmp_dir)
@@ -188,7 +183,8 @@ def get_dir_changes(new_dir_info, old_dir_info, parent_dir_changes=None,
 
       change = ChangeEntry(
           e_new_info.path, e_new_info, None, CONTENT_STATUS_NEW,
-          parent_dir_changes=cur_dir_changes, dir_status=dir_status)
+          dir_changes=dir_changes, parent_dir_changes=cur_dir_changes,
+          dir_status=dir_status)
 
     elif not e_new_info and e_old_info:
       path = e_old_info.path
@@ -197,12 +193,12 @@ def get_dir_changes(new_dir_info, old_dir_info, parent_dir_changes=None,
                                       old_dir_info.dir_info(e_old_info.path),
                                       parent_dir_changes=cur_dir_changes,
                                       root_dir=root_dir, tmp_dir=tmp_dir)
-        cur_dir_changes.put_dir_changes(path, dir_changes)
         dir_status =dir_changes.dir_status()
 
       change = ChangeEntry(
           e_old_info.path, None, e_old_info, CONTENT_STATUS_DELETED,
-          parent_dir_changes=cur_dir_changes, dir_status=dir_status)
+          dir_changes=dir_changes, parent_dir_changes=cur_dir_changes,
+          dir_status=dir_status)
 
     cur_dir_changes.add_change(change)
 
