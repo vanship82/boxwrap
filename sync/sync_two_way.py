@@ -49,7 +49,8 @@ def _sync_change(change, dc_new, dc_old, change_on_dc_new=True,
             dir_changes=dir_changes_new, parent_dir_changes=dc_new))
 
 
-def _merge_both_files(c1, c2, dc_new1, dc_old1, dc_new2, dc_old2, dc_conflict):
+def _merge_both_files(c1, c2, dc_new1, dc_old1, dc_new2, dc_old2,
+                      changes_conflict):
   if not c1:
     if not c2 and c2.content_status == change_entry.CONTENT_STATUS_NEW:
       _sync_change(c2, dc_new1, dc_old1)
@@ -98,7 +99,7 @@ def _merge_both_files(c1, c2, dc_new1, dc_old1, dc_new2, dc_old2, dc_conflict):
 
 
 def _merge_both_dirs(c1, c2, dc1, dc2,
-                     dc_new1, dc_old1, dc_new2, dc_old2, dc_conflict):
+                     dc_new1, dc_old1, dc_new2, dc_old2, changes_conflict):
   if not c1:
     if not c2 and c2.content_status == change_entry.CONTENT_STATUS_NEW:
       _sync_change(c2, dc_new1, dc_old1)
@@ -110,7 +111,7 @@ def _merge_both_dirs(c1, c2, dc1, dc2,
                       parent_dir_changes_old1=dc_old1,
                       parent_dir_changes_new2=dc_new2,
                       parent_dir_changes_old2=dc_old2,
-                      parent_dir_changes_conflict=dc_conflict)
+                      changes_conflict=changes_conflict)
       _sync_change(c1, dc_new1, dc_old1, dir_changes_new=results[0],
                    dir_changes_old=results[1])
       _sync_change(c2, dc_new2, dc_old2, dir_changes_new=results[2],
@@ -134,14 +135,13 @@ def _is_file_change(change):
 #   dir_changes_old1, the dir_changes with merge for the old dir1.
 #   dir_changes_new2, the dir_changes with merge for the new dir2.
 #   dir_changes_old2, the dir_changes with merge for the old dir2.
-#   dir_changes_conflict, the dir_changes for conflicts, which should
-#     be always new entries.
+#   changes_conflict, the list of changes for conflicts, maybe changed.
 def merge(dir_changes1, dir_changes2,
           parent_dir_changes_new1=None,
           parent_dir_changes_old1=None,
           parent_dir_changes_new2=None,
           parent_dir_changes_old2=None,
-          parent_dir_changes_conflict=None):
+          changes_conflict=None):
   dc_new1 = change_entry.DirChanges(dir_changes1.base_dir(),
                                     change_entry.CONTENT_STATUS_UNSPECIFIED,
                                     parent_dir_changes=parent_dir_changes_new1)
@@ -154,20 +154,21 @@ def merge(dir_changes1, dir_changes2,
   dc_old2 = change_entry.DirChanges(dir_changes2.base_dir(),
                                     change_entry.CONTENT_STATUS_UNSPECIFIED,
                                     parent_dir_changes=parent_dir_changes_old2)
-  dc_conflict = change_entry.DirChanges(
-      dir_changes2.base_dir(), change_entry.CONTENT_STATUS_UNSPECIFIED,
-      parent_dir_changes=parent_dir_changes_conflict)
+  if not changes_conflict:
+    changes_conflict = []
   for c1, c2 in util.merge_two_iterators(
       iter(dir_changes1.changes() if dir_changes1 else []),
       iter(dir_changes2.changes() if dir_changes2 else []),
       key_func=lambda x: util.path_for_sorting(x.path)):
     if _is_file_change(c1) and _is_file_change(c2):
-      _merge_both_files(c1, c2, dc_new1, dc_old1, dc_new2, dc_old2, dc_conflict)
+      _merge_both_files(c1, c2, dc_new1, dc_old1, dc_new2, dc_old2,
+                        changes_conflict)
     elif not _is_file_change(c1) and not _is_file_change(c2):
       _merge_both_dirs(c1, c2,
                        dir_changes1.dir_changes(c1.path),
                        dir_changes2.dir_changes(c2.path),
-                       dc_new1, dc_old1, dc_new2, dc_old2, dc_conflict)
+                       dc_new1, dc_old1, dc_new2, dc_old2,
+                       changes_conflict)
 
-  return dc_new1, dc_old1, dc_new2, dc_old2, dc_conflict
+  return dc_new1, dc_old1, dc_new2, dc_old2, changes_conflict
 

@@ -117,8 +117,7 @@ class TestMergeFile(unittest.TestCase):
     self.changes_old2 = [x for x in self.dc_old2.flat_changes()]
     self.di_old2 = change_entry.apply_dir_changes_to_dir_info('.',
                                                               self.dc_old2)
-    self.dc_conflict = result[4]
-    self.changes_conflict = self.dc_conflict.flat_changes()
+    self.changes_conflict = result[4]
 
   def testInitialSync(self):
     self._merge_for_test()
