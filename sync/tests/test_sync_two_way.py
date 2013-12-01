@@ -45,65 +45,39 @@ class TestMergeFile(unittest.TestCase):
     os.makedirs(_TEST_DIR2)
     os.makedirs(_TEST_TMP)
 
-    self.sync_file_info_list1 = self._get_sync_file_info_list(
-        _TEST_DIR1, file_info.empty_dir_info(_TEST_DIR1), _TEST_TMP)
+    self.dir_info1 = file_info.load_rel_dir_info(_TEST_DIR1)
     f = open(os.path.join(_TEST_DIR1, _TEST_CASE_FILE), 'w')
     f.write(_TEST_INITIAL_CONTENT)
     f.close()
-    self.sync_file_info_list1 = self._get_sync_file_info_list(
-        _TEST_DIR1,
-        self._get_sync_dir_info(_TEST_DIR1, self.sync_file_info_list1),
-        _TEST_TMP)
-    self.dir_info1 = self._get_sync_dir_info(_TEST_DIR1,
-                                             self.sync_file_info_list1)
+    self.dir_info1 = change_entry.apply_dir_changes_to_dir_info(
+        '.',  # use current dir as base dir
+        change_entry.get_dir_changes(
+            file_info.load_rel_dir_info(_TEST_DIR1),
+            self.dir_info1, root_dir=_TEST_DIR1, tmp_dir=_TEST_TMP))
 
-    self.sync_file_info_list2 = self._get_sync_file_info_list(
-        _TEST_DIR2, file_info.empty_dir_info(_TEST_DIR1), _TEST_TMP)
+    self.dir_info2 = file_info.load_rel_dir_info(_TEST_DIR2)
     f = open(os.path.join(_TEST_DIR2, _TEST_CASE_FILE), 'w')
     f.write(_TEST_INITIAL_CONTENT)
     f.close()
-    self.sync_file_info_list2 = self._get_sync_file_info_list(
-        _TEST_DIR1,
-        self._get_sync_dir_info(_TEST_DIR1, self.sync_file_info_list2),
-        _TEST_TMP)
-    self.dir_info2 = self._get_sync_dir_info(_TEST_DIR2,
-                                             self.sync_file_info_list2)
+    self.dir_info2 = change_entry.apply_dir_changes_to_dir_info(
+        '.',  # use current dir as base dir
+        change_entry.get_dir_changes(
+            file_info.load_rel_dir_info(_TEST_DIR2),
+            self.dir_info2, root_dir=_TEST_DIR2, tmp_dir=_TEST_TMP))
     try:
       shutil.rmtree(_TEST_TMP)
     except:
       pass
     os.mkdir(_TEST_TMP)
 
-  def _get_sync_file_info_list(self, src_dir_path, dest_dir_info, tmp_dir):
-    sync_file_info_list = []
-    for path, sync_change in sync_one_way.generate_sync_changes(
-        src_dir_path, dest_dir_info, tmp_dir):
-      sync_file_info = sync_one_way.apply_sync_change_to_file_info(sync_change)
-      if sync_file_info:
-        sync_file_info_list.append(sync_file_info)
-    return sync_file_info_list
-
-  def _get_sync_dir_info(self, dir_path, sync_file_info_list):
-    return file_info.DirInfo(
-        dir_path,
-        [sync_file_info.file_info for sync_file_info in sync_file_info_list])
-
-  def _get_dir_info_from_sync_change_od(self, dir_path, sync_change_od):
-    file_info_list = []
-    for sync_two_way_change in sync_change_od.itervalues():
-      sync_file_info = sync_one_way.apply_sync_change_to_file_info(sync_change)
-      if sync_file_info:
-        file_info_list.append(sync_file_info.file_info)
-    return file_info.DirInfo(dir_path, file_info_list)
-
   def _assertFileContent(self, content, file_path):
     with open(file_path, 'r') as f:
       self.assertEquals(content, f.read())
 
+  # TODO: use this method to verify the final state
   def _assertDirInfoEqual(self, dir_info1, dir_info2):
     for fi1, fi2 in util.merge_two_iterators(
-        iter(dir_info1.file_info_list()),
-        iter(dir_info2.file_info_list()),
+        dir_info1.flat_file_info_list(), dir_info2.flat_file_info_list(),
         key_func=lambda x: x.path_for_sorting()):
       self.assertIsNotNone(fi1)
       self.assertIsNotNone(fi2)
@@ -111,75 +85,116 @@ class TestMergeFile(unittest.TestCase):
       self.assertEquals(fi1.is_dir, fi2.is_dir)
       self.assertFalse(fi1.is_modified(fi2))
 
-  def _merge_for_test(self):
-    sync_change_od1 = sync_one_way.get_sync_change_od(
-        _TEST_DIR1, self.dir_info1, _TEST_TMP)
-    sync_change_od2 = sync_one_way.get_sync_change_od(
-        _TEST_DIR2, self.dir_info2, _TEST_TMP)
+  def _assertContentStatus(self, expected_status, dir_changes, path):
+    split_paths = path.split(os.sep)
+    dc = dir_changes
+    for i in range(0, len(split_paths)-1):
+      dc = dc.dir_changes(os.sep.join(split_paths[:i + 1]))
+    self.assertEquals(expected_status, dc.change(path).content_status)
 
-    new_sc_od1, new_sc_od2 = sync_two_way.merge(sync_change_od1,
-                                                sync_change_od2)
-    return (new_sc_od1, new_sc_od2,
-            self._get_dir_info_from_sync_change_od(_TEST_DIR1, new_sc_od1),
-            self._get_dir_info_from_sync_change_od(_TEST_DIR2, new_sc_od2))
+  def _merge_for_test(self):
+    self.dir_changes1 = change_entry.get_dir_changes(
+        file_info.load_rel_dir_info(_TEST_DIR1),
+        self.dir_info1, root_dir=_TEST_DIR1, tmp_dir=_TEST_TMP)
+    self.dir_changes2 = change_entry.get_dir_changes(
+        file_info.load_rel_dir_info(_TEST_DIR2),
+        self.dir_info2, root_dir=_TEST_DIR2, tmp_dir=_TEST_TMP)
+
+    result = sync_two_way.merge(self.dir_changes1, self.dir_changes2)
+    self.dc_new1 = result[0]
+    self.changes_new1 = [x for x in self.dc_new1.flat_changes()]
+    self.di_new1 = change_entry.apply_dir_changes_to_dir_info('.',
+                                                              self.dc_new1)
+    self.dc_old1 = result[1]
+    self.changes_old1 = [x for x in self.dc_old1.flat_changes()]
+    self.di_old1 = change_entry.apply_dir_changes_to_dir_info('.',
+                                                              self.dc_old1)
+    self.dc_new2 = result[2]
+    self.changes_new2 = [x for x in self.dc_new2.flat_changes()]
+    self.di_new2 = change_entry.apply_dir_changes_to_dir_info('.',
+                                                              self.dc_new2)
+    self.dc_old2 = result[3]
+    self.changes_old2 = [x for x in self.dc_old2.flat_changes()]
+    self.di_old2 = change_entry.apply_dir_changes_to_dir_info('.',
+                                                              self.dc_old2)
+    self.dc_conflict = result[4]
+    self.changes_conflict = self.dc_conflict.flat_changes()
 
   def testInitialSync(self):
-    new_sc_od1, new_sc_od2, new_di1, new_di2 = self._merge_for_test()
+    self._merge_for_test()
 
-    self.assertEquals(2, len(new_sc_od1))
-    self.assertEquals(change_entry.CONTENT_STATUS_NO_CHANGE,
-                      new_sc_od1['.'].change.content_status)
-    self.assertEquals(
-        change_entry.CONTENT_STATUS_NO_CHANGE,
-        new_sc_od1[os.path.join('.', _TEST_CASE_FILE)].change.content_status)
-    self.assertEquals(2, len(new_sc_od2))
-    self.assertEquals(change_entry.CONTENT_STATUS_NO_CHANGE,
-                      new_sc_od2['.'].change.content_status)
-    self.assertEquals(
-        change_entry.CONTENT_STATUS_NO_CHANGE,
-        new_sc_od2[os.path.join('.', _TEST_CASE_FILE)].change.content_status)
+    self.assertEquals(2, len(self.changes_new1))
+    self.assertEquals(2, len(self.changes_old1))
+    self.assertEquals(2, len(self.changes_new2))
+    self.assertEquals(2, len(self.changes_old2))
 
-    self._assertDirInfoEqual(new_di1, new_di2)
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_new1, '.')
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_new1, os.path.join('.', _TEST_CASE_FILE))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_old1, '.')
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_old1, os.path.join('.', _TEST_CASE_FILE))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_new2, '.')
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_new2, os.path.join('.', _TEST_CASE_FILE))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_old2, '.')
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_old2, os.path.join('.', _TEST_CASE_FILE))
 
   def testSyncNewFileLeft(self):
     f = open(os.path.join(_TEST_DIR1, _TEST_CASE_FILE_NEW), 'w')
     f.write('new')
     f.close()
 
-    new_sc_od1, new_sc_od2, new_di1, new_di2 = self._merge_for_test()
+    self._merge_for_test()
 
-    self.assertEquals(3, len(new_sc_od1))
-    self.assertEquals(
-        change_entry.CONTENT_STATUS_NEW,
-        new_sc_od1[os.path.join('.', _TEST_CASE_FILE_NEW)]
-            .change.content_status)
-    self.assertEquals(3, len(new_sc_od2))
-    self.assertEquals(
-        change_entry.CONTENT_STATUS_NEW,
-        new_sc_od2[os.path.join('.', _TEST_CASE_FILE_NEW)]
-            .change.content_status)
+    self.assertEquals(3, len(self.changes_new1))
+    self.assertEquals(3, len(self.changes_old1))
+    self.assertEquals(3, len(self.changes_new2))
+    self.assertEquals(3, len(self.changes_old2))
 
-    self._assertDirInfoEqual(new_di1, new_di2)
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_new1,
+                              os.path.join('.', _TEST_CASE_FILE_NEW))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NEW,
+                              self.dc_old1,
+                              os.path.join('.', _TEST_CASE_FILE_NEW))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NEW,
+                              self.dc_new2,
+                              os.path.join('.', _TEST_CASE_FILE_NEW))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NEW,
+                              self.dc_old2,
+                              os.path.join('.', _TEST_CASE_FILE_NEW))
 
   def testSyncNewFileRight(self):
     f = open(os.path.join(_TEST_DIR2, _TEST_CASE_FILE_NEW), 'w')
     f.write('new')
     f.close()
 
-    new_sc_od1, new_sc_od2, new_di1, new_di2 = self._merge_for_test()
+    self._merge_for_test()
 
-    self.assertEquals(3, len(new_sc_od1))
-    self.assertEquals(
-        change_entry.CONTENT_STATUS_NEW,
-        new_sc_od1[os.path.join('.', _TEST_CASE_FILE_NEW)]
-            .change.content_status)
-    self.assertEquals(3, len(new_sc_od2))
-    self.assertEquals(
-        change_entry.CONTENT_STATUS_NEW,
-        new_sc_od2[os.path.join('.', _TEST_CASE_FILE_NEW)]
-            .change.content_status)
+    self.assertEquals(3, len(self.changes_new1))
+    self.assertEquals(3, len(self.changes_old1))
+    self.assertEquals(3, len(self.changes_new2))
+    self.assertEquals(3, len(self.changes_old2))
 
-    self._assertDirInfoEqual(new_di1, new_di2)
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NEW,
+                              self.dc_new1,
+                              os.path.join('.', _TEST_CASE_FILE_NEW))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NEW,
+                              self.dc_old1,
+                              os.path.join('.', _TEST_CASE_FILE_NEW))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_new2,
+                              os.path.join('.', _TEST_CASE_FILE_NEW))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NEW,
+                              self.dc_old2,
+                              os.path.join('.', _TEST_CASE_FILE_NEW))
 
   def testSyncNewFileConflict(self):
     f = open(os.path.join(_TEST_DIR1, _TEST_CASE_FILE_NEW), 'w')
@@ -189,18 +204,18 @@ class TestMergeFile(unittest.TestCase):
     f.write('new2')
     f.close()
 
-    new_sc_od1, new_sc_od2, new_di1, new_di2 = self._merge_for_test()
+    self._merge_for_test()
 
-    self.assertEquals(3, len(new_sc_od1))
+    self.assertEquals(3, len(self.changes_new1))
     self.assertEquals(
         change_entry.CONTENT_STATUS_NEW,
-        new_sc_od1[os.path.join('.', _TEST_CASE_FILE_NEW)]
-            .change.content_status)
-    self.assertEquals(3, len(new_sc_od2))
+        self.dc_new1.change(os.path.join('.', _TEST_CASE_FILE_NEW))
+            .content_status)
+    self.assertEquals(3, len(self.changes_new2))
     self.assertEquals(
         change_entry.CONTENT_STATUS_NEW,
-        new_sc_od2[os.path.join('.', _TEST_CASE_FILE_NEW)]
-            .change.content_status)
+        self.dc_new3.change(os.path.join('.', _TEST_CASE_FILE_NEW))
+            .content_status)
 
-    self._assertDirInfoEqual(new_di1, new_di2)
+    self._assertDirInfoEqual(self.di_new1, self.di_new2)
 
