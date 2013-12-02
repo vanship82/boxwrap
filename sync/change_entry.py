@@ -136,7 +136,10 @@ def get_dir_changes(new_dir_info, old_dir_info, parent_dir_changes=None,
                                       old_dir_info.dir_info(e_old_info.path),
                                       parent_dir_changes=cur_dir_changes,
                                       root_dir=root_dir, tmp_dir=tmp_dir)
-        content_status = CONTENT_STATUS_NO_CHANGE
+        if dir_changes.dir_status() == CONTENT_STATUS_NO_CHANGE:
+          content_status = CONTENT_STATUS_NO_CHANGE
+        else:
+          content_status = CONTENT_STATUS_MODIFIED
         dir_status = dir_changes.dir_status()
       elif e_new_info.is_dir and not e_old_info.is_dir:
         dir_changes = get_dir_changes(new_dir_info.dir_info(e_new_info.path),

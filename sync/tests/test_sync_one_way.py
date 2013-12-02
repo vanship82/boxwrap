@@ -220,3 +220,102 @@ class TestSyncDir(unittest.TestCase):
     self.assertTrue(self.file_info_list[3].is_dir)
     self.assertIsNone(self.file_info_list[3].tmp_file)
 
+
+class TestSyncMultiDir(unittest.TestCase):
+
+  def setUp(self):
+    try:
+      shutil.rmtree(_TEST_SRC)
+    except:
+      pass
+    try:
+      shutil.rmtree(_TEST_TMP)
+    except:
+      pass
+    os.makedirs(_TEST_SRC)
+    os.makedirs(_TEST_TMP)
+
+    self.dir_info = file_info.load_rel_dir_info(_TEST_SRC)
+    self.test_dir = os.path.join(_TEST_SRC, _TEST_CASE_DIR)
+    os.makedirs(self.test_dir)
+    self.test_dir_level2 = os.path.join(self.test_dir, _TEST_CASE_DIR)
+    os.makedirs(self.test_dir_level2)
+    f = open(os.path.join(self.test_dir_level2, _TEST_CASE_FILE), 'w')
+    f.write(_TEST_INITIAL_CONTENT)
+    f.close()
+    self.dir_info = change_entry.apply_dir_changes_to_dir_info(
+        '.',  # use current dir as base dir
+        change_entry.get_dir_changes(
+            file_info.load_rel_dir_info(_TEST_SRC),
+            self.dir_info, root_dir=_TEST_SRC, tmp_dir=_TEST_TMP))
+    self.file_info_list = [x for x in self.dir_info.flat_file_info_list()]
+    try:
+      shutil.rmtree(_TEST_TMP)
+    except:
+      pass
+    os.mkdir(_TEST_TMP)
+
+  def _assertFileContent(self, content, file_path):
+    with open(file_path, 'r') as f:
+      self.assertEquals(content, f.read())
+
+  def _test_get_file_info_list_after_sync(self):
+    self.dir_changes = change_entry.get_dir_changes(
+        file_info.load_rel_dir_info(_TEST_SRC), self.dir_info,
+        root_dir=_TEST_SRC, tmp_dir=_TEST_TMP)
+    self.changes = [x for x in self.dir_changes.flat_changes()]
+    self.dir_info = change_entry.apply_dir_changes_to_dir_info(
+        '.', self.dir_changes)
+    self.file_info_list = [x for x in self.dir_info.flat_file_info_list()]
+
+  def testInitialSync(self):
+    self.assertEquals(4, len(self.file_info_list))
+    self.assertEquals('.', self.file_info_list[0].path)
+    self.assertEquals(
+        os.path.join('.', _TEST_CASE_DIR),
+        self.file_info_list[1].path)
+    self.assertEquals(
+        os.path.join(os.path.join('.', _TEST_CASE_DIR), _TEST_CASE_DIR),
+        self.file_info_list[2].path)
+    self.assertEquals(
+        os.path.join(os.path.join('.', _TEST_CASE_DIR),
+                     os.path.join(_TEST_CASE_DIR, _TEST_CASE_FILE)),
+        self.file_info_list[3].path)
+
+  def testSyncModifyFile(self):
+    f = open(os.path.join(self.test_dir_level2, _TEST_CASE_FILE), 'w')
+    f.write('modified')
+    f.close()
+
+    self._test_get_file_info_list_after_sync()
+
+    self.assertEquals(4, len(self.file_info_list))
+    self.assertEquals(change_entry.CONTENT_STATUS_MODIFIED,
+                      self.changes[0].content_status)
+    self.assertEquals(change_entry.CONTENT_STATUS_MODIFIED,
+                      self.changes[1].content_status)
+    self.assertEquals(change_entry.CONTENT_STATUS_MODIFIED,
+                      self.changes[2].content_status)
+    self.assertEquals(change_entry.CONTENT_STATUS_MODIFIED,
+                      self.changes[3].content_status)
+
+    self.assertIsNotNone(self.file_info_list[3].tmp_file)
+    self._assertFileContent(
+        'modified',
+        os.path.join(_TEST_TMP, self.file_info_list[3].tmp_file))
+
+  def testSyncDeleteFile(self):
+    os.remove(os.path.join(self.test_dir_level2, _TEST_CASE_FILE))
+
+    self._test_get_file_info_list_after_sync()
+
+    self.assertEquals(3, len(self.file_info_list))
+    self.assertEquals(change_entry.CONTENT_STATUS_MODIFIED,
+                      self.changes[0].content_status)
+    self.assertEquals(change_entry.CONTENT_STATUS_MODIFIED,
+                      self.changes[1].content_status)
+    self.assertEquals(change_entry.CONTENT_STATUS_MODIFIED,
+                      self.changes[2].content_status)
+    self.assertEquals(change_entry.CONTENT_STATUS_DELETED,
+                      self.changes[3].content_status)
+
