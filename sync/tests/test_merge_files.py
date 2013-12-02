@@ -19,13 +19,11 @@ _TEST_DIR2 = os.path.join(_TEST_TMP_BASE_DIR, 'dir2')
 _TEST_TMP = os.path.join(_TEST_TMP_BASE_DIR, 'tmp')
 _TEST_CASE_FILE = 'test.txt'
 _TEST_CASE_FILE_NEW = 'test_new.txt'
-_TEST_CASE_DIR = 'test_dir'
-_TEST_CASE_DIR_NEW = 'test_dir_new'
 
 _TEST_INITIAL_CONTENT = 'test'
 
 
-class TestMergeFile(unittest.TestCase):
+class TestMergeFiles(unittest.TestCase):
 
   def setUp(self):
     try:
