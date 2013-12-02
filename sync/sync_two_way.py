@@ -119,8 +119,20 @@ def _merge_both_dirs(c1, c2, dc1, dc2,
     if not c2 and c2.content_status == change_entry.CONTENT_STATUS_NEW:
       _sync_change(c2, dc_new1, dc_old1)
   elif c1.content_status == change_entry.CONTENT_STATUS_NO_CHANGE:
-    if c2.content_status == change_entry.CONTENT_STATUS_NO_CHANGE:
-      # no change
+    if c2.content_status == change_entry.CONTENT_STATUS_DELETED:
+      # sync c2 to c1
+      results = merge(dc1, dc2,
+                      parent_dir_changes_new1=dc_new1,
+                      parent_dir_changes_old1=dc_old1,
+                      parent_dir_changes_new2=dc_new2,
+                      parent_dir_changes_old2=dc_old2,
+                      parent_dir_changes_conflict=dc_conflict)
+      _sync_change(c2, dc_new1, dc_old1, dir_changes_new=results[0],
+                   dir_changes_old=results[1])
+      _sync_change(c2, dc_new2, dc_old2, dir_changes_new=results[2],
+                   dir_changes_old=results[3])
+    else:
+      # no sync, maybe conflict
       results = merge(dc1, dc2,
                       parent_dir_changes_new1=dc_new1,
                       parent_dir_changes_old1=dc_old1,
@@ -133,6 +145,81 @@ def _merge_both_dirs(c1, c2, dc1, dc2,
                    dir_changes_old=results[3])
       if results[4].changes():
         _sync_conflict(c1, dc_conflict, results[4])
+  elif c1.content_status == change_entry.CONTENT_STATUS_MODIFIED:
+    if c2.content_status == change_entry.CONTENT_STATUS_DELETED:
+      # conflict
+      pass
+    else:
+      # no sync, maybe conflict
+      results = merge(dc1, dc2,
+                      parent_dir_changes_new1=dc_new1,
+                      parent_dir_changes_old1=dc_old1,
+                      parent_dir_changes_new2=dc_new2,
+                      parent_dir_changes_old2=dc_old2,
+                      parent_dir_changes_conflict=dc_conflict)
+      _sync_change(c1, dc_new1, dc_old1, dir_changes_new=results[0],
+                   dir_changes_old=results[1])
+      _sync_change(c2, dc_new2, dc_old2, dir_changes_new=results[2],
+                   dir_changes_old=results[3])
+      if results[4].changes():
+        _sync_conflict(c1, dc_conflict, results[4])
+  elif c1.content_status == change_entry.CONTENT_STATUS_NEW:
+    if not c2:
+      # sync c1 to c2
+      results = merge(dc1, dc2,
+                      parent_dir_changes_new1=dc_new1,
+                      parent_dir_changes_old1=dc_old1,
+                      parent_dir_changes_new2=dc_new2,
+                      parent_dir_changes_old2=dc_old2,
+                      parent_dir_changes_conflict=dc_conflict)
+      _sync_change(c1, dc_new1, dc_old1, dir_changes_new=results[0],
+                   dir_changes_old=results[1])
+      _sync_change(c1, dc_new2, dc_old2, dir_changes_new=results[2],
+                   dir_changes_old=results[3])
+    else:
+      # no sync, maybe conflict
+      results = merge(dc1, dc2,
+                      parent_dir_changes_new1=dc_new1,
+                      parent_dir_changes_old1=dc_old1,
+                      parent_dir_changes_new2=dc_new2,
+                      parent_dir_changes_old2=dc_old2,
+                      parent_dir_changes_conflict=dc_conflict)
+      _sync_change(c1, dc_new1, dc_old1, dir_changes_new=results[0],
+                   dir_changes_old=results[1])
+      _sync_change(c2, dc_new2, dc_old2, dir_changes_new=results[2],
+                   dir_changes_old=results[3])
+      if results[4].changes():
+        _sync_conflict(c1, dc_conflict, results[4])
+  elif c1.content_status == change_entry.CONTENT_STATUS_DELETED:
+    if c2.content_status == change_entry.CONTENT_STATUS_NO_CHANGE:
+      # sync c1 to c2
+      results = merge(dc1, dc2,
+                      parent_dir_changes_new1=dc_new1,
+                      parent_dir_changes_old1=dc_old1,
+                      parent_dir_changes_new2=dc_new2,
+                      parent_dir_changes_old2=dc_old2,
+                      parent_dir_changes_conflict=dc_conflict)
+      _sync_change(c1, dc_new1, dc_old1, dir_changes_new=results[0],
+                   dir_changes_old=results[1])
+      _sync_change(c1, dc_new2, dc_old2, dir_changes_new=results[2],
+                   dir_changes_old=results[3])
+    elif c2.content_status == change_entry.CONTENT_STATUS_DELETED:
+      # no sync, maybe conflict
+      results = merge(dc1, dc2,
+                      parent_dir_changes_new1=dc_new1,
+                      parent_dir_changes_old1=dc_old1,
+                      parent_dir_changes_new2=dc_new2,
+                      parent_dir_changes_old2=dc_old2,
+                      parent_dir_changes_conflict=dc_conflict)
+      _sync_change(c1, dc_new1, dc_old1, dir_changes_new=results[0],
+                   dir_changes_old=results[1])
+      _sync_change(c2, dc_new2, dc_old2, dir_changes_new=results[2],
+                   dir_changes_old=results[3])
+      if results[4].changes():
+        _sync_conflict(c1, dc_conflict, results[4])
+    else:
+      # conflict
+      pass
 
 
 def _is_file_change(change):
