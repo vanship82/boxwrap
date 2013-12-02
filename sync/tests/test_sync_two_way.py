@@ -117,7 +117,8 @@ class TestMergeFile(unittest.TestCase):
     self.changes_old2 = [x for x in self.dc_old2.flat_changes()]
     self.di_old2 = change_entry.apply_dir_changes_to_dir_info('.',
                                                               self.dc_old2)
-    self.changes_conflict = result[4]
+    self.dc_conflict = result[4]
+    self.changes_conflict = [x for x in self.dc_conflict.flat_changes()]
 
   def testInitialSync(self):
     self._merge_for_test()
@@ -209,6 +210,7 @@ class TestMergeFile(unittest.TestCase):
     self.assertEquals(3, len(self.changes_old1))
     self.assertEquals(3, len(self.changes_new2))
     self.assertEquals(3, len(self.changes_old2))
+    self.assertEquals(2, len(self.changes_conflict))
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
                               self.dc_new1,
@@ -221,6 +223,12 @@ class TestMergeFile(unittest.TestCase):
                               os.path.join('.', _TEST_CASE_FILE_NEW))
     self._assertContentStatus(change_entry.CONTENT_STATUS_NEW,
                               self.dc_old2,
+                              os.path.join('.', _TEST_CASE_FILE_NEW))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_conflict, '.')
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NEW,
+                              self.dc_conflict,
                               os.path.join('.', _TEST_CASE_FILE_NEW))
 
   def testSyncModifiedFileLeft(self):
@@ -287,6 +295,7 @@ class TestMergeFile(unittest.TestCase):
     self.assertEquals(2, len(self.changes_old1))
     self.assertEquals(2, len(self.changes_new2))
     self.assertEquals(2, len(self.changes_old2))
+    self.assertEquals(2, len(self.changes_conflict))
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
                               self.dc_new1,
@@ -299,6 +308,12 @@ class TestMergeFile(unittest.TestCase):
                               os.path.join('.', _TEST_CASE_FILE))
     self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
                               self.dc_old2,
+                              os.path.join('.', _TEST_CASE_FILE))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_conflict, '.')
+    self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
+                              self.dc_conflict,
                               os.path.join('.', _TEST_CASE_FILE))
 
   def testSyncDeleteFileLeft(self):
