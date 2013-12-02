@@ -6,7 +6,6 @@ import shutil
 
 from sync import change_entry
 from sync import file_info
-from sync import sync_one_way
 from util import util
 
 
@@ -17,15 +16,6 @@ class SyncTwoWayChangeEntry:
   def __init__(self, sync_change, conflict_sync_change=None):
     self.sync_change = sync_change
     self.conflict_sync_change = conflict_sync_change
-
-
-def sync(dir1, dir_info1, dir2, dir_info2, tmp_dir):
-  sync_change_od1 = sync_one_way.get_sync_change_od(dir1, dir_info1, tmp_dir)
-  sync_change_od2 = sync_one_way.get_sync_change_od(dir2, dir_info2, tmp_dir)
-
-  new_sc_od1, new_sc_od2 = merge(sync_change_od1, sync_change_od2)
-  apply_sync_change_to_dir(sync_changes1_merge)
-  apply_sync_change_to_dir(sync_changes2_merge)
 
 
 def _sync_conflict(change, dc_conflict, dir_changes=None):
