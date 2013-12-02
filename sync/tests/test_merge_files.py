@@ -6,8 +6,7 @@ import unittest
 
 import cStringIO
 
-from sync import sync_one_way
-from sync import sync_two_way
+from sync import merge
 from sync import file_info
 from sync import change_entry
 from util import util
@@ -100,7 +99,7 @@ class TestMergeFile(unittest.TestCase):
         file_info.load_rel_dir_info(_TEST_DIR2),
         self.dir_info2, root_dir=_TEST_DIR2, tmp_dir=_TEST_TMP)
 
-    result = sync_two_way.merge(self.dir_changes1, self.dir_changes2)
+    result = merge.merge(self.dir_changes1, self.dir_changes2)
     self.dc_new1 = result[0]
     self.changes_new1 = [x for x in self.dc_new1.flat_changes()]
     self.di_new1 = change_entry.apply_dir_changes_to_dir_info('.',
