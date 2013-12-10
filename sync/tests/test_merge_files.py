@@ -117,6 +117,20 @@ class TestMergeFiles(unittest.TestCase):
     self.dc_conflict = result[4]
     self.changes_conflict = [x for x in self.dc_conflict.flat_changes()]
 
+  def _print_changes(self):
+    print "dc_new1"
+    for x in self.changes_new1:
+      print x
+    print "dc_old1"
+    for x in self.changes_old1:
+      print x
+    print "dc_new2"
+    for x in self.changes_new2:
+      print x
+    print "dc_old2"
+    for x in self.changes_old2:
+      print x
+
   def testInitialSync(self):
     self._merge_for_test()
 

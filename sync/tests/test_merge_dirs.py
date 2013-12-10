@@ -132,6 +132,20 @@ class TestMergeDirs(unittest.TestCase):
     self.dc_conflict = result[4]
     self.changes_conflict = [x for x in self.dc_conflict.flat_changes()]
 
+  def _print_changes(self):
+    print "dc_new1"
+    for x in self.changes_new1:
+      print x
+    print "dc_old1"
+    for x in self.changes_old1:
+      print x
+    print "dc_new2"
+    for x in self.changes_new2:
+      print x
+    print "dc_old2"
+    for x in self.changes_old2:
+      print x
+
   def testInitialSync(self):
     self._merge_for_test()
 
@@ -400,4 +414,139 @@ class TestMergeDirs(unittest.TestCase):
                               self.dc_old1,
                               os.path.join(_TEST_CASE_DIR_REL,
                                            _TEST_CASE_FILE2))
+
+  def testDeleteNoChangeNoConflict(self):
+    shutil.rmtree(self.test_dir1_level1)
+
+    self._merge_for_test()
+
+    self.assertEquals(1, len(self.changes_new1))
+    self.assertEquals(4, len(self.changes_old1))
+    self.assertEquals(4, len(self.changes_new2))
+    self.assertEquals(4, len(self.changes_old2))
+    self.assertEquals(0, len(self.changes_conflict))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
+                              self.dc_new1, '.')
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old1, _TEST_CASE_DIR_REL)
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old1,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE1))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old1,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE2))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_new2, _TEST_CASE_DIR_REL)
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_new2,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE1))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_new2,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE2))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old2, _TEST_CASE_DIR_REL)
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old2,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE1))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old2,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE2))
+
+  def testNoChangeDeleteNoConflict(self):
+    shutil.rmtree(self.test_dir2_level1)
+
+    self._merge_for_test()
+
+    self.assertEquals(4, len(self.changes_new1))
+    self.assertEquals(4, len(self.changes_old1))
+    self.assertEquals(1, len(self.changes_new2))
+    self.assertEquals(4, len(self.changes_old2))
+    self.assertEquals(0, len(self.changes_conflict))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_new1, _TEST_CASE_DIR_REL)
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_new1,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE1))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_new1,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE2))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old1, _TEST_CASE_DIR_REL)
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old1,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE1))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old1,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE2))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
+                              self.dc_new2, '.')
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old2, _TEST_CASE_DIR_REL)
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old2,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE1))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old2,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE2))
+
+  def testDeleteDeleteNoConflict(self):
+    shutil.rmtree(self.test_dir1_level1)
+    shutil.rmtree(self.test_dir2_level1)
+
+    self._merge_for_test()
+
+    self.assertEquals(1, len(self.changes_new1))
+    self.assertEquals(4, len(self.changes_old1))
+    self.assertEquals(1, len(self.changes_new2))
+    self.assertEquals(4, len(self.changes_old2))
+    self.assertEquals(0, len(self.changes_conflict))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
+                              self.dc_new1, '.')
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old1, _TEST_CASE_DIR_REL)
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old1,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE1))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old1,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE2))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
+                              self.dc_new2, '.')
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old2, _TEST_CASE_DIR_REL)
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old2,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE1))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old2,
+                              os.path.join(_TEST_CASE_DIR_REL,
+                                           _TEST_CASE_FILE2))
+
 
