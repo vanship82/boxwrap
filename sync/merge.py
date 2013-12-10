@@ -43,6 +43,8 @@ def _sync_change(change, dc_new, dc_old, change_on_dc_new=True,
         # Need recover cur_info
         cur_info = copy.deepcopy(change.old_info) if change.old_info else None
         content_status_new = change_entry.CONTENT_STATUS_MODIFIED
+      elif content_status_new == change_entry.CONTENT_STATUS_NEW:
+        content_status_new = dir_changes_new.dir_status()
   if content_status_old == change_entry.CONTENT_STATUS_UNSPECIFIED:
     content_status_old = change.content_status
     if dir_changes_old and dir_changes_old.changes():
@@ -54,6 +56,8 @@ def _sync_change(change, dc_new, dc_old, change_on_dc_new=True,
         # Need recover cur_info
         cur_info = copy.deepcopy(change.old_info) if change.old_info else None
         content_status_old = change_entry.CONTENT_STATUS_MODIFIED
+      elif content_status_old == change_entry.CONTENT_STATUS_NEW:
+        content_status_old = dir_changes_old.dir_status()
   dc_old.add_change(
       change_entry.ChangeEntry(
           change.path, cur_info, old_info, content_status_old,
@@ -107,12 +111,15 @@ def _merge_both_files(c1, c2, dc_new1, dc_old1, dc_new2, dc_old2,
       _sync_change(c1, dc_new2, dc_old2)
   elif c1.content_status == change_entry.CONTENT_STATUS_NEW:
     if c2 and c2.content_status == change_entry.CONTENT_STATUS_NEW:
-      # TODO: verify that the hash code is indentical, if so, do not sync
-      # conflict, sync c1 to c2 and put c2 into conflict
-      _sync_change(c1, dc_new1, dc_old1, change_on_dc_new=False)
-      _sync_change(c1, dc_new2, dc_old2,
-                   content_status_new=change_entry.CONTENT_STATUS_MODIFIED)
-      dc_conflict.add_change(c2)
+      if c1.cur_info.is_modified(c2.cur_info, force_check_content=True):
+        _sync_change(c1, dc_new1, dc_old1, change_on_dc_new=False)
+        _sync_change(c1, dc_new2, dc_old2,
+                     content_status_new=change_entry.CONTENT_STATUS_MODIFIED)
+        dc_conflict.add_change(c2)
+      else:
+        # New files are identical, no sync
+        _sync_change(c1, dc_new1, dc_old1, change_on_dc_new=False)
+        _sync_change(c1, dc_new2, dc_old2, change_on_dc_new=False)
     else:
       # sync c1 to c2
       _sync_change(c1, dc_new1, dc_old1, change_on_dc_new=False)

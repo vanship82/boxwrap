@@ -188,7 +188,7 @@ def get_dir_changes(new_dir_info, old_dir_info, parent_dir_changes=None,
 
       path = e_new_info.path
       if tmp_file:
-        e_new_info = file_info.copy_with_tmp_file(e_new_info, tmp_file)
+        e_new_info = file_info.copy_with_tmp_file(e_new_info, tmp_file, tmp_dir)
       change = ChangeEntry(
           e_new_info.path, e_new_info, e_old_info, content_status,
           dir_changes=dir_changes, parent_dir_changes=cur_dir_changes)
@@ -203,7 +203,8 @@ def get_dir_changes(new_dir_info, old_dir_info, parent_dir_changes=None,
       elif root_dir and tmp_dir:
         tmp_file = _copy_to_tmp_dir(root_dir, e_new_info.path, tmp_dir)
         if tmp_file:
-          e_new_info = file_info.copy_with_tmp_file(e_new_info, tmp_file)
+          e_new_info = file_info.copy_with_tmp_file(e_new_info, tmp_file,
+                                                    tmp_dir)
 
       change = ChangeEntry(
           e_new_info.path, e_new_info, None, CONTENT_STATUS_NEW,

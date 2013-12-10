@@ -28,13 +28,7 @@ class FileInfo:
       return None
     if not overwrite and self.file_hash:
       return self.file_hash
-    sha1 = hashlib.sha1()
-    f = open(self.path, 'rb')
-    try:
-      sha1.update(f.read())
-    finally:
-      f.close()
-    self.file_hash = sha1.hexdigest()
+    self.file_hash = _calculate_hash(self.path)
     return self.file_hash
 
   def path_for_sorting(self):
@@ -52,12 +46,12 @@ class FileInfo:
       str(self.file_hash) if self.file_hash else ''])
     return output.getvalue().strip('\r\n')
 
-  def is_modified(self, other):
+  def is_modified(self, other, force_check_content=False):
     if self.is_dir != other.is_dir:
       return True
     if self.is_dir:
       return False
-    if (self.size == other.size and
+    if (not force_check_content and self.size == other.size and
         self.last_modified_time == other.last_modified_time):
       return False
     elif (self.size != other.size or
@@ -77,10 +71,24 @@ class FileInfo:
             self.file_hash))
 
 
-def copy_with_tmp_file(file_info, tmp_file):
+def _calculate_hash(path):
+  sha1 = hashlib.sha1()
+  f = open(path, 'rb')
+  try:
+    sha1.update(f.read())
+  finally:
+    f.close()
+  return sha1.hexdigest()
+
+
+def copy_with_tmp_file(file_info, tmp_file, tmp_dir):
+  # When tmp_file is available, always calculate its hash
+  file_hash=file_info.file_hash
+  if not file_hash and tmp_file:
+    file_hash = _calculate_hash(os.path.join(tmp_dir, tmp_file))
   return FileInfo(file_info.path, file_info.is_dir, file_info.mode,
                   file_info.size, file_info.last_modified_time,
-                  file_hash=file_info.file_hash, tmp_file=tmp_file)
+                  file_hash=file_hash, tmp_file=tmp_file)
 
 
 def load_file_info(path):

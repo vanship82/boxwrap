@@ -145,6 +145,9 @@ class TestMergeDirs(unittest.TestCase):
     print "dc_old2"
     for x in self.changes_old2:
       print x
+    print "conflict"
+    for x in self.changes_conflict:
+      print x
 
   def testInitialSync(self):
     self._merge_for_test()
@@ -548,5 +551,76 @@ class TestMergeDirs(unittest.TestCase):
                               self.dc_old2,
                               os.path.join(_TEST_CASE_DIR_REL,
                                            _TEST_CASE_FILE2))
+
+  def testNewNew(self):
+    test_dir_new1 = os.path.join(_TEST_DIR1, _TEST_CASE_DIR_NEW)
+    os.mkdir(test_dir_new1)
+    test_dir_new2 = os.path.join(_TEST_DIR2, _TEST_CASE_DIR_NEW)
+    os.mkdir(test_dir_new2)
+    f = open(os.path.join(test_dir_new1, _TEST_CASE_FILE1), 'w')
+    f.write('new1')
+    f.close()
+    f = open(os.path.join(test_dir_new1, _TEST_CASE_FILE2), 'w')
+    f.write('new2_1')
+    f.close()
+    f = open(os.path.join(test_dir_new2, _TEST_CASE_FILE1), 'w')
+    f.write('new1')
+    f.close()
+    f = open(os.path.join(test_dir_new2, _TEST_CASE_FILE2), 'w')
+    f.write('new2_2')
+    f.close()
+
+    self._merge_for_test()
+
+    self.assertEquals(7, len(self.changes_new1))
+    self.assertEquals(7, len(self.changes_old1))
+    self.assertEquals(7, len(self.changes_new2))
+    self.assertEquals(7, len(self.changes_old2))
+    self.assertEquals(3, len(self.changes_conflict))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_new1, _TEST_CASE_DIR_NEW_REL)
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_new1,
+                              os.path.join(_TEST_CASE_DIR_NEW_REL,
+                                           _TEST_CASE_FILE1))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_new1,
+                              os.path.join(_TEST_CASE_DIR_NEW_REL,
+                                           _TEST_CASE_FILE2))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NEW,
+                              self.dc_old1, _TEST_CASE_DIR_NEW_REL)
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NEW,
+                              self.dc_old1,
+                              os.path.join(_TEST_CASE_DIR_NEW_REL,
+                                           _TEST_CASE_FILE1))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NEW,
+                              self.dc_old1,
+                              os.path.join(_TEST_CASE_DIR_NEW_REL,
+                                           _TEST_CASE_FILE2))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
+                              self.dc_new2, _TEST_CASE_DIR_NEW_REL)
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_new2,
+                              os.path.join(_TEST_CASE_DIR_NEW_REL,
+                                           _TEST_CASE_FILE1))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
+                              self.dc_new2,
+                              os.path.join(_TEST_CASE_DIR_NEW_REL,
+                                           _TEST_CASE_FILE2))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NEW,
+                              self.dc_old2, _TEST_CASE_DIR_NEW_REL)
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NEW,
+                              self.dc_old2,
+                              os.path.join(_TEST_CASE_DIR_NEW_REL,
+                                           _TEST_CASE_FILE1))
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NEW,
+                              self.dc_old2,
+                              os.path.join(_TEST_CASE_DIR_NEW_REL,
+                                           _TEST_CASE_FILE2))
+    #TODO: verify the content status for conflicts
 
 
