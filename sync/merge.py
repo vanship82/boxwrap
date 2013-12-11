@@ -77,6 +77,18 @@ def _sync_change(change, dc_new, dc_old, change_on_dc_new=True,
 
 def _merge_both_files(c1, c2, dc_new1, dc_old1, dc_new2, dc_old2,
                       dc_conflict):
+  # Treat TO_DIR as DELETED and drop its dir_changes
+  if c1 and c1.content_status == change_entry.CONTENT_STATUS_TO_DIR:
+    c1 = change_entry.ChangeEntry(c1.path, None, c1.old_info,
+                                  change_entry.CONTENT_STATUS_DELETED,
+                                  dir_changes=None,
+                                  parent_dir_changes=c1.parent_dir_changes)
+  if c2 and c2.content_status == change_entry.CONTENT_STATUS_TO_DIR:
+    c2 = change_entry.ChangeEntry(c2.path, None, c2.old_info,
+                                  change_entry.CONTENT_STATUS_DELETED,
+                                  dir_changes=None,
+                                  parent_dir_changes=c2.parent_dir_changes)
+
   if not c1:
     if not c2 and c2.content_status == change_entry.CONTENT_STATUS_NEW:
       _sync_change(c2, dc_new1, dc_old1)
@@ -148,6 +160,18 @@ def _merge_both_dirs(c1, c2, dc1, dc2,
                   parent_dir_changes_new2=dc_new2,
                   parent_dir_changes_old2=dc_old2,
                   parent_dir_changes_conflict=dc_conflict)
+  # Treat TO_FILE as DELETED
+  if c1 and c1.content_status == change_entry.CONTENT_STATUS_TO_FILE:
+    c1 = change_entry.ChangeEntry(c1.path, None, c1.old_info,
+                                  change_entry.CONTENT_STATUS_DELETED,
+                                  dir_changes=c1.dir_changes,
+                                  parent_dir_changes=c1.parent_dir_changes)
+  if c2 and c2.content_status == change_entry.CONTENT_STATUS_TO_FILE:
+    c2 = change_entry.ChangeEntry(c2.path, None, c2.old_info,
+                                  change_entry.CONTENT_STATUS_DELETED,
+                                  dir_changes=c2.dir_changes,
+                                  parent_dir_changes=c2.parent_dir_changes)
+
   if not c1:
     if not c2 and c2.content_status == change_entry.CONTENT_STATUS_NEW:
       _sync_change(c2, dc_new1, dc_old1, dir_changes_new=results[0],
@@ -213,94 +237,13 @@ def _merge_both_dirs(c1, c2, dc1, dc2,
         _sync_conflict(c1, dc_conflict, results[4])
 
 
-def _merge_file_dir(c1, c2, dc1, dc2,
-                    dc_new1, dc_old1, dc_new2, dc_old2, dc_conflict):
-  if c1.content_status == change_entry.CONTENT_STATUS_TO_FILE:
-    results = merge(dc1, dc2,
-                    parent_dir_changes_new1=dc_new1,
-                    parent_dir_changes_old1=dc_old1,
-                    parent_dir_changes_new2=dc_new2,
-                    parent_dir_changes_old2=dc_old2,
-                    parent_dir_changes_conflict=dc_conflict)
-    if c2.content_status in [change_entry.CONTENT_STATUS_NO_CHANGE,
-                             change_entry.CONTENT_STATUS_DELETED,
-                             change_entry.CONTENT_STATUS_TO_FILE]:
-      # sync c1 to c2, maybe conflict
-      _sync_change(c1, dc_new1, dc_old1, change_on_dc_new=False,
-                   dir_changes_new=result[0], dir_changes_old=result[1])
-      _sync_change(c1, dc_new2, dc_old2,
-                   dir_changes_new=result[2], dir_changes_old=result[3])
-    else:
-      # TODO: conflict, treat c1 as DELETED and make c1 cur_info to be a
-      # conflict no change to existing dir
-      pass
-  elif c1.content_status == change_entry.CONTENT_STATUS_TO_DIR:
-    if c2.content_status == change_entry.CONTENT_STATUS_TO_DIR:
-      results = merge(dc1, dc2,
-                      parent_dir_changes_new1=dc_new1,
-                      parent_dir_changes_old1=dc_old1,
-                      parent_dir_changes_new2=dc_new2,
-                      parent_dir_changes_old2=dc_old2,
-                      parent_dir_changes_conflict=dc_conflict)
-      # no sync, maybe conflict
-      _sync_change(c1, dc_new1, dc_old1, dir_changes_new=results[0],
-                   dir_changes_old=results[1])
-      _sync_change(c2, dc_new2, dc_old2, dir_changes_new=results[2],
-                   dir_changes_old=results[3])
-      if results[4].changes():
-        _sync_conflict(c1, dc_conflict, results[4])
-    else:
-      # TODO: conflict, treat c2 as DELETED and make c1 cur_info to be a
-      # conflict no change to existing dir
-      pass
-  else:
-    if c2.content_status == change_entry.CONTENT_STATUS_TO_FILE:
-      results = merge(dc1, dc2,
-                      parent_dir_changes_new1=dc_new1,
-                      parent_dir_changes_old1=dc_old1,
-                      parent_dir_changes_new2=dc_new2,
-                      parent_dir_changes_old2=dc_old2,
-                      parent_dir_changes_conflict=dc_conflict)
-      if c1.content_status in [change_entry.CONTENT_STATUS_NO_CHANGE,
-                               change_entry.CONTENT_STATUS_DELETED,
-                               # Actually, the below status is checked
-                               change_entry.CONTENT_STATUS_TO_FILE]:
-        # sync c2 to c1, maybe conflict
-        _sync_change(c2, dc_new1, dc_old1, change_on_dc_new=False,
-                     dir_changes_new=result[0], dir_changes_old=result[1])
-        _sync_change(c2, dc_new2, dc_old2,
-                     dir_changes_new=result[2], dir_changes_old=result[3])
-      else:
-        # TODO: conflict, treat c2 as DELETED and make c2 cur_info to be a
-        # conflict no change to existing dir
-        pass
-    elif c1.content_status == change_entry.CONTENT_STATUS_TO_DIR:
-      # c2 TO_DIR is already checked
-      # TODO: conflict, treat c1 as DELETED and make c1 cur_info to be a
-      # conflict no change to existing dir
-      pass
-
-
 def _is_file_change(change):
   if not change:
     return True
-  if change.cur_info and change.old_info:
-    return not change.cur_info.is_dir and not change.old_info.is_dir
+  if change.old_info:
+    return not change.old_info.is_dir
   elif change.cur_info:
     return not change.cur_info.is_dir
-  else:
-    return not change.old_info.is_dir
-
-
-def _is_dir_change(change):
-  if not change:
-    return True
-  if change.cur_info and change.old_info:
-    return change.cur_info.is_dir and change.old_info.is_dir
-  elif change.cur_info:
-    return change.cur_info.is_dir
-  else:
-    return change.old_info.is_dir
 
 
 # Conflict resolution favorite dir_changes1.
@@ -338,18 +281,12 @@ def merge(dir_changes1, dir_changes2,
     if _is_file_change(c1) and _is_file_change(c2):
       _merge_both_files(c1, c2, dc_new1, dc_old1, dc_new2, dc_old2,
                         dc_conflict)
-    elif _is_dir_change(c1) and _is_dir_change(c2):
+    else:
       _merge_both_dirs(c1, c2,
                        dir_changes1.dir_changes(c1.path),
                        dir_changes2.dir_changes(c2.path),
                        dc_new1, dc_old1, dc_new2, dc_old2,
                        dc_conflict)
-    else:
-      _merge_file_dir(c1, c2,
-                      dir_changes1.dir_changes(c1.path),
-                      dir_changes2.dir_changes(c2.path),
-                      dc_new1, dc_old1, dc_new2, dc_old2,
-                      dc_conflict)
 
   return dc_new1, dc_old1, dc_new2, dc_old2, dc_conflict
 
