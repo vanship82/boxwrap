@@ -51,6 +51,8 @@ class FileInfo:
       return True
     if self.is_dir:
       return False
+    if self.file_hash and other.file_hash:
+      return self.file_hash != other.file_hash
     if (not force_check_content and self.size == other.size and
         self.last_modified_time == other.last_modified_time):
       return False
@@ -91,18 +93,20 @@ def copy_with_tmp_file(file_info, tmp_file, tmp_dir):
                   file_hash=file_hash, tmp_file=tmp_file)
 
 
-def load_file_info(path):
+def load_file_info(path, calculate_hash=False):
   if not os.path.exists(path):
     return None
   try:
     stat = os.stat(path)
     is_dir = os.path.isdir(path)
+    file_hash = _calculate_hash(path) if calculate_hash and not is_dir else None
     return FileInfo(
         path,
         is_dir,
         stat.st_mode,
         stat.st_size if not is_dir else None,
-        stat.st_mtime)
+        stat.st_mtime,
+        file_hash=file_hash)
   except:
     return None
 
@@ -198,12 +202,13 @@ def load_dir_info_from_csv(f, base_dir):
 
 
 # recursively
-def load_dir_info(dir_path):
+def load_dir_info(dir_path, calculate_hash=False):
   file_info_list = []
   for root, dirs, files in os.walk(dir_path):
     file_info_list.append(load_file_info(root))
     for f in files:
-      file_info_list.append(load_file_info(os.path.join(root, f)))
+      file_info_list.append(load_file_info(os.path.join(root, f),
+                            calculate_hash=calculate_hash))
   dir_info, unused = _sorted_file_info_list_to_dir_info(
       dir_path, file_info_list, 0)
   return dir_info

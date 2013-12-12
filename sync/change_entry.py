@@ -240,3 +240,12 @@ def apply_dir_changes_to_dir_info(base_dir, dir_changes):
     file_info_list.append(change.cur_info)
   return file_info.load_dir_info_from_file_info_list(base_dir, file_info_list)
 
+
+def apply_dir_changes_to_dir(dest_dir, dir_changes, conflict_changes):
+  dest_dir = dest_dir
+  dir_changes = dir_changes
+
+  for change in dir_changes.flat_changes():
+    if change:
+      pass
+
