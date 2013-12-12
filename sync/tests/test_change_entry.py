@@ -29,15 +29,18 @@ class TestChangeEntry(unittest.TestCase):
     os.chdir(os.path.join(_TEST_CASES_BASE_DIR, _TEST_CASES_SRC))
     di_old = file_info.load_dir_info('.', calculate_hash=True)
     dc = change_entry.get_dir_changes(di_new, di_old)
+    di_final = change_entry.apply_dir_changes_to_dir_info('.', dc)
+    ''' debug only
     print "***************** dir_changes"
     for item in dc.flat_changes():
       print item
     print "***************** final dir_info"
-    di_final = change_entry.apply_dir_changes_to_dir_info('.', dc)
     for item in di_final.flat_file_info_list():
       print item
+    '''
     dc_final = change_entry.get_dir_changes(di_new, di_final)
     for item in dc_final.flat_changes():
       self.assertEquals(change_entry.CONTENT_STATUS_NO_CHANGE,
                         item.content_status)
+
 
