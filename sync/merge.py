@@ -9,15 +9,6 @@ from sync import file_info
 from util import util
 
 
-class SyncTwoWayChangeEntry:
-  """ Two way change with conflict resolution.
-  """
-
-  def __init__(self, sync_change, conflict_sync_change=None):
-    self.sync_change = sync_change
-    self.conflict_sync_change = conflict_sync_change
-
-
 def _sync_conflict(change, dc_conflict, dir_changes=None):
   cur_info = copy.deepcopy(change.cur_info) if change.cur_info else None
   dc_conflict.add_change(
