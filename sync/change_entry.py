@@ -268,7 +268,18 @@ _CONFLICT_DEST = 2
 
 
 def _get_file_conflict_state(change, full_path):
-  return _CONFLICT_NO_CONFLICT
+  if os.path.isdir(full_path):
+    return _CONFLICT_NEW
+  elif os.path.isfile(full_path):
+    fi = file_info.load_file_info(full_path)
+    if ((change.old_info and not change.old_info.is_modified(fi)) or
+        (change.cur_info and not change.cur_info.is_modified(fi))):
+      return _CONFLICT_NO_CONFLICT
+    else:
+      return _CONFLICT_DEST
+  else:
+    # No exist
+    return _CONFLICT_NO_CONFLICT
 
 
 def _get_dir_conflict_state(change, full_path):
@@ -319,9 +330,9 @@ def apply_dir_changes_to_dir(dest_dir, dir_changes):
         conflict_state = _get_file_conflict_state(c, full_path)
         if conflict_state == _CONFLICT_NO_CONFLICT:
           c.cur_info.copy_tmp(full_path)
-        elif conflict_state == _CONFLICT_CONFLICT_NEW:
+        elif conflict_state == _CONFLICT_NEW:
           c.cur_info.copy_tmp(_get_conflict_copy_path(full_path))
-        elif conflcit_state == _CONFLICT_CONFLICT_DEST:
+        elif conflict_state == _CONFLICT_DEST:
           shutil.move(full_path, _get_conflict_copy_path(full_path))
           c.cur_info.copy_tmp(full_path)
       elif c.content_status == CONTENT_STATUS_DELETED:
@@ -338,7 +349,7 @@ def apply_dir_changes_to_dir(dest_dir, dir_changes):
         if conflict_state == _CONFLICT_NO_CONFLICT:
           if not os.path.exists(full_path):
             os.mkdir(full_path)
-        elif conflcit_state == _CONFLICT_CONFLICT_DEST:
+        elif conflict_state == _CONFLICT_DEST:
           shutil.move(full_path, _get_conflict_copy_path(full_path))
           os.mkdir(full_path)
         apply_dir_changes_to_dir(dest_dir, c.dir_changes)
