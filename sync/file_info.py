@@ -2,6 +2,7 @@ import csv
 import glob
 import hashlib
 import os
+import shutil
 import traceback
 
 import cStringIO
@@ -61,6 +62,11 @@ class FileInfo:
       return True
     return False
 
+  def copy_tmp(self, dest_path):
+    if not self.tmp_file:
+      raise Exception("Error copy empty tmp file: %s" % self)
+    shutil.copy2(self.tmp_file, dest_path)
+
   def __str__(self):
     return (
         'path: %s, is_dir: %s, mode: 0%o size: %s, last_modified_time: %s, '
@@ -86,11 +92,12 @@ def _calculate_hash(path):
 def copy_with_tmp_file(file_info, tmp_file, tmp_dir):
   # When tmp_file is available, always calculate its hash
   file_hash=file_info.file_hash
+  full_tmp_path = os.path.join(tmp_dir, tmp_file)
   if not file_hash and tmp_file:
-    file_hash = _calculate_hash(os.path.join(tmp_dir, tmp_file))
+    file_hash = _calculate_hash(full_tmp_path)
   return FileInfo(file_info.path, file_info.is_dir, file_info.mode,
                   file_info.size, file_info.last_modified_time,
-                  file_hash=file_hash, tmp_file=tmp_file)
+                  file_hash=file_hash, tmp_file=full_tmp_path)
 
 
 def load_file_info(path, calculate_hash=False):

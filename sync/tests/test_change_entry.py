@@ -68,3 +68,35 @@ class TestChangeEntry(unittest.TestCase):
       self.assertEquals(change_entry.CONTENT_STATUS_NO_CHANGE,
                         item.content_status)
 
+  def test_change_entry_on_real_dirs(self):
+    os.chdir(_TEST_DEST)
+    di_new = file_info.load_dir_info('.', calculate_hash=True)
+    os.chdir(_TEST_SRC)
+    di_old = file_info.load_dir_info('.', calculate_hash=True)
+    dc = change_entry.get_dir_changes(di_new, di_old, root_dir=_TEST_DEST,
+                                      tmp_dir=_TEST_TMP)
+    change_entry.apply_dir_changes_to_dir(_TEST_SRC, dc)
+    ''' debug only
+    print "***************** dir_changes"
+    for item in dc.flat_changes():
+      print item
+    print "***************** final dir_info"
+    for item in di_final.flat_file_info_list():
+      print item
+    '''
+    os.chdir(_TEST_SRC)
+    di_final = file_info.load_dir_info('.', calculate_hash=True)
+
+    dc_final = change_entry.get_dir_changes(di_new, di_final)
+    failure_count = 0
+    for item in dc_final.flat_changes():
+      ''' debug only
+      if item.content_status != change_entry.CONTENT_STATUS_NO_CHANGE:
+        failure_count += 1
+        print 'Error item %d: %s' % (failure_count, item)
+      '''
+      self.assertEquals(change_entry.CONTENT_STATUS_NO_CHANGE,
+                        item.content_status,
+                        'Error item: %s' % item)
+    self.assertEquals(0, failure_count)
+

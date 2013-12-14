@@ -133,10 +133,11 @@ def _copy_to_tmp_dir(root_dir, path, tmp_dir):
     if not os.path.exists(full_file_name):
       break
 
-  shutil.copyfile(os.path.join(root_dir, path), full_file_name)
+  shutil.copy2(os.path.join(root_dir, path), full_file_name)
   return random_file_name
 
 
+# root_dir is the root for new_dir_info
 def get_dir_changes(new_dir_info, old_dir_info, parent_dir_changes=None,
                     root_dir=None, tmp_dir=None):
   # TODO: add permission change status
@@ -241,11 +242,114 @@ def apply_dir_changes_to_dir_info(base_dir, dir_changes):
   return file_info.load_dir_info_from_file_info_list(base_dir, file_info_list)
 
 
-def apply_dir_changes_to_dir(dest_dir, dir_changes, conflict_changes):
-  dest_dir = dest_dir
-  dir_changes = dir_changes
+def _generate_conflict_copy_path(path, count):
+  dirname, basename = os.path.split(path)
+  splits = basename.split('.')
+  if len(splits) > 1:
+    return os.path.join(
+        dirname,
+        '.'.join(splits[:-1]) + ' (conflict copy %s).%s' % (count ,splits[-1]))
+  else:
+    return os.path.join(dirname, basename + ' (conflict copy %s)' %  count)
 
-  for change in dir_changes.flat_changes():
-    if change:
-      pass
+
+def _get_conflict_copy_path(full_path):
+  count = 1
+  while (True):
+    conflict_copy_path = _generate_conflict_copy_path(full_path, count)
+    if not os.path.exists(conflict_copy_path):
+      return conflict_copy_path
+    count += 1
+
+
+_CONFLICT_NO_CONFLICT = 0
+_CONFLICT_NEW = 1
+_CONFLICT_DEST = 2
+
+
+def _get_file_conflict_state(change, full_path):
+  return _CONFLICT_NO_CONFLICT
+
+
+def _get_dir_conflict_state(change, full_path):
+  return _CONFLICT_NO_CONFLICT
+
+
+def apply_dir_changes_to_dir(dest_dir, dir_changes):
+  for c in dir_changes.changes():
+    full_path = os.path.join(dest_dir, c.path)
+    if c.content_status == CONTENT_STATUS_TO_FILE:
+      if not os.path.exists(full_path):
+        c.cur_info.copy_tmp(full_path)
+      elif os.path.isdir(full_path):
+        apply_dir_changes_to_dir(dest_dir, c.dir_changes)
+        if os.listdir(full_path):
+          # Conflict, the directory still exists
+          c.cur_info.copy_tmp(_get_conflict_copy_path(full_path))
+        else:
+          os.rmdir(full_path)
+          c.cur_info.copy_tmp(full_path)
+      else:
+        # full_path is a file
+        if c.cur_info.is_modified(file_info.load_file_info(full_path)):
+          # Conflict, the existing file is changed
+          c.cur_info.copy_tmp(_get_conflict_copy_path(full_path))
+
+    elif c.content_status == CONTENT_STATUS_TO_DIR:
+      if not os.path.exists(full_path):
+        os.makedir(full_path)
+        apply_dir_changes_to_dir(dest_dir, c.dir_changes)
+      elif os.path.isdir(full_path):
+        apply_dir_changes_to_dir(dest_dir, c.dir_changes)
+      else:
+        # full_path is still a file
+        if c.old_info.is_modified(file_info.load_file_info(full_path)):
+          # Conflict, the existing file is changed
+          os.rename(_get_conflict_copy_path(full_path))
+        else:
+          os.remove(full_path)
+        os.mkdir(full_path)
+        apply_dir_changes_to_dir(dest_dir, c.dir_changes)
+
+    elif ((not c.cur_info or not c.cur_info.is_dir)
+        and (not c.old_info or not c.old_info.is_dir)):
+      # File change
+      if c.content_status in [CONTENT_STATUS_NEW,
+                              CONTENT_STATUS_MODIFIED]:
+        conflict_state = _get_file_conflict_state(c, full_path)
+        if conflict_state == _CONFLICT_NO_CONFLICT:
+          c.cur_info.copy_tmp(full_path)
+        elif conflict_state == _CONFLICT_CONFLICT_NEW:
+          c.cur_info.copy_tmp(_get_conflict_copy_path(full_path))
+        elif conflcit_state == _CONFLICT_CONFLICT_DEST:
+          shutil.move(full_path, _get_conflict_copy_path(full_path))
+          c.cur_info.copy_tmp(full_path)
+      elif c.content_status == CONTENT_STATUS_DELETED:
+        conflict_state = _get_file_conflict_state(c, full_path)
+        if conflict_state == _CONFLICT_NO_CONFLICT:
+          if os.path.exists(full_path):
+            os.remove(full_path)
+
+    else:
+      # Dir change
+      if c.content_status in [CONTENT_STATUS_NEW,
+                              CONTENT_STATUS_MODIFIED]:
+        conflict_state = _get_dir_conflict_state(c, full_path)
+        if conflict_state == _CONFLICT_NO_CONFLICT:
+          if not os.path.exists(full_path):
+            os.mkdir(full_path)
+        elif conflcit_state == _CONFLICT_CONFLICT_DEST:
+          shutil.move(full_path, _get_conflict_copy_path(full_path))
+          os.mkdir(full_path)
+        apply_dir_changes_to_dir(dest_dir, c.dir_changes)
+      elif c.content_status == CONTENT_STATUS_DELETED:
+        conflict_state = _get_dir_conflict_state(c, full_path)
+        if conflict_state == _CONFLICT_NO_CONFLICT:
+          apply_dir_changes_to_dir(dest_dir, c.dir_changes)
+          if not os.listdir(full_path):
+            os.rmdir(full_path)
+      else:
+        # No change
+        apply_dir_changes_to_dir(dest_dir, c.dir_changes)
+
 
