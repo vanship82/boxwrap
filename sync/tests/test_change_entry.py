@@ -1,5 +1,6 @@
 import inspect
 import os
+import shutil
 import unittest
 
 import cStringIO
@@ -13,20 +14,44 @@ _TEST_CASES_BASE_DIR = os.path.join(
 _TEST_CASES_SRC = 'src'
 _TEST_CASES_DEST = 'dest'
 
+_TEST_TMP_BASE_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))),
+    'test_tmp')
+_TEST_SRC = os.path.join(_TEST_TMP_BASE_DIR, _TEST_CASES_SRC)
+_TEST_DEST = os.path.join(_TEST_TMP_BASE_DIR, _TEST_CASES_DEST)
+_TEST_TMP = os.path.join(_TEST_TMP_BASE_DIR, 'tmp')
+
 
 class TestChangeEntry(unittest.TestCase):
 
   def setUp(self):
+    try:
+      shutil.rmtree(_TEST_SRC)
+    except:
+      pass
+    try:
+      shutil.rmtree(_TEST_DEST)
+    except:
+      pass
+    try:
+      shutil.rmtree(_TEST_TMP)
+    except:
+      pass
+    os.makedirs(_TEST_TMP)
+    shutil.copytree(os.path.join(_TEST_CASES_BASE_DIR, _TEST_CASES_SRC),
+                    _TEST_SRC)
+    shutil.copytree(os.path.join(_TEST_CASES_BASE_DIR, _TEST_CASES_DEST),
+                    _TEST_DEST)
+
     self._old_cwd = os.getcwd()
-    os.chdir(_TEST_CASES_BASE_DIR)
 
   def tearDown(self):
     os.chdir(self._old_cwd)
 
   def test_change_entry(self):
-    os.chdir(os.path.join(_TEST_CASES_BASE_DIR, _TEST_CASES_DEST))
+    os.chdir(_TEST_DEST)
     di_new = file_info.load_dir_info('.', calculate_hash=True)
-    os.chdir(os.path.join(_TEST_CASES_BASE_DIR, _TEST_CASES_SRC))
+    os.chdir(_TEST_SRC)
     di_old = file_info.load_dir_info('.', calculate_hash=True)
     dc = change_entry.get_dir_changes(di_new, di_old)
     di_final = change_entry.apply_dir_changes_to_dir_info('.', dc)
@@ -42,5 +67,4 @@ class TestChangeEntry(unittest.TestCase):
     for item in dc_final.flat_changes():
       self.assertEquals(change_entry.CONTENT_STATUS_NO_CHANGE,
                         item.content_status)
-
 
