@@ -177,6 +177,43 @@ class TestChangeEntry(unittest.TestCase):
           (('.', 'test8_new (conflict copy 1).txt'),
               change_entry.CONTENT_STATUS_NEW, '8\n')])
 
+  def test_change_entry_conflict_file_new_multiple_copy(self):
+    os.chdir(_TEST_DEST)
+    di_new = file_info.load_dir_info('.', calculate_hash=True)
+    os.chdir(_TEST_SRC)
+    di_old = file_info.load_dir_info('.', calculate_hash=True)
+    dc = change_entry.get_dir_changes(di_new, di_old, root_dir=_TEST_DEST,
+                                      tmp_dir=_TEST_TMP)
+
+    # Generate conflict
+    f = open(os.path.join(_TEST_SRC, 'test8_new.txt'), 'w')
+    # New file with different content, conflict
+    f.write(_TEST_CONFLICT_CONTENT)
+    f.close()
+    # New file which takes the conflict copy 1 name
+    f = open(os.path.join(_TEST_SRC, 'test8_new (conflict copy 1).txt'), 'w')
+    f.write('conflict again')
+    f.close()
+
+    # Apply dir changes to _TEST_SRC
+    change_entry.apply_dir_changes_to_dir(_TEST_SRC, dc)
+
+    # Verify the dir status
+    os.chdir(_TEST_SRC)
+    di_final = file_info.load_dir_info('.', calculate_hash=True)
+
+    dc_final = change_entry.get_dir_changes(di_final, di_new)
+    self._assertDirChanges(
+        dc_final,
+        special_cases=[
+          (('.'), change_entry.CONTENT_STATUS_MODIFIED),
+          (('.', 'test8_new.txt'),
+              change_entry.CONTENT_STATUS_MODIFIED, _TEST_CONFLICT_CONTENT),
+          (('.', 'test8_new (conflict copy 1).txt'),
+              change_entry.CONTENT_STATUS_NEW, 'conflict again'),
+          (('.', 'test8_new (conflict copy 2).txt'),
+              change_entry.CONTENT_STATUS_NEW, '8\n')])
+
   def test_change_entry_conflict_file_modified(self):
     os.chdir(_TEST_DEST)
     di_new = file_info.load_dir_info('.', calculate_hash=True)
