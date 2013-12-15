@@ -55,7 +55,9 @@ class TestChangeEntry(unittest.TestCase):
 
         if len(case) > 2:
           if debug:
-            if not is_failed and self._assertFileContent(case[2], item.path):
+            if (not is_failed
+                and not self._assertFileContent(
+                    case[2], item.path, debug=True)):
               is_failed = True
           else:
             self._assertFileContent(case[2], item.path)
@@ -232,7 +234,7 @@ class TestChangeEntry(unittest.TestCase):
 
     dc_final = change_entry.get_dir_changes(di_final, di_new)
     self._assertDirChanges(
-        dc_final, debug=True,
+        dc_final,
         special_cases=[
           (('.'), change_entry.CONTENT_STATUS_MODIFIED),
           (('.', 'test3_deleted.txt'),
@@ -397,36 +399,6 @@ class TestChangeEntry(unittest.TestCase):
           (('.', 'dir3_deleted'),
               change_entry.CONTENT_STATUS_NEW, _TEST_CONFLICT_CONTENT)])
 
-  def test_change_entry_conflict_dir_deleted_but_to_file(self):
-    os.chdir(_TEST_DEST)
-    di_new = file_info.load_dir_info('.', calculate_hash=True)
-    os.chdir(_TEST_SRC)
-    di_old = file_info.load_dir_info('.', calculate_hash=True)
-    dc = change_entry.get_dir_changes(di_new, di_old, root_dir=_TEST_DEST,
-                                      tmp_dir=_TEST_TMP)
-
-    # Generate conflict
-    # Change the dir to file, which was deleted, no conflict
-    shutil.rmtree(os.path.join(_TEST_SRC, 'dir3_deleted'))
-    f = open(os.path.join(_TEST_SRC, 'dir3_deleted'), 'w')
-    f.write(_TEST_CONFLICT_CONTENT)
-    f.close()
-
-    # Apply dir changes to _TEST_SRC
-    change_entry.apply_dir_changes_to_dir(_TEST_SRC, dc)
-
-    # Verify the dir status
-    os.chdir(_TEST_SRC)
-    di_final = file_info.load_dir_info('.', calculate_hash=True)
-
-    dc_final = change_entry.get_dir_changes(di_final, di_new)
-    self._assertDirChanges(
-        dc_final,
-        special_cases=[
-          (('.'), change_entry.CONTENT_STATUS_MODIFIED),
-          (('.', 'dir3_deleted'),
-              change_entry.CONTENT_STATUS_NEW, _TEST_CONFLICT_CONTENT)])
-
   def test_change_entry_conflict_dir_deleted_but_modified(self):
     os.chdir(_TEST_DEST)
     di_new = file_info.load_dir_info('.', calculate_hash=True)
@@ -461,4 +433,103 @@ class TestChangeEntry(unittest.TestCase):
               change_entry.CONTENT_STATUS_NEW),
           (('.', 'dir3_deleted', 'dir3_1_deleted', 'test3_1_1_deleted.txt'),
               change_entry.CONTENT_STATUS_NEW, _TEST_CONFLICT_CONTENT)])
+
+  def test_change_entry_conflict_to_file_but_deleted(self):
+    os.chdir(_TEST_DEST)
+    di_new = file_info.load_dir_info('.', calculate_hash=True)
+    os.chdir(_TEST_SRC)
+    di_old = file_info.load_dir_info('.', calculate_hash=True)
+    dc = change_entry.get_dir_changes(di_new, di_old, root_dir=_TEST_DEST,
+                                      tmp_dir=_TEST_TMP)
+
+    # Generate conflict
+    # Delete the dir already, no conflict
+    shutil.rmtree(os.path.join(_TEST_SRC, 'dir10_become_file'))
+
+    # Apply dir changes to _TEST_SRC
+    change_entry.apply_dir_changes_to_dir(_TEST_SRC, dc)
+
+    # Verify the dir status
+    os.chdir(_TEST_SRC)
+    di_final = file_info.load_dir_info('.', calculate_hash=True)
+
+    dc_final = change_entry.get_dir_changes(di_final, di_new)
+    self._assertDirChanges(dc_final)
+
+  def test_change_entry_conflict_to_file_already(self):
+    os.chdir(_TEST_DEST)
+    di_new = file_info.load_dir_info('.', calculate_hash=True)
+    os.chdir(_TEST_SRC)
+    di_old = file_info.load_dir_info('.', calculate_hash=True)
+    dc = change_entry.get_dir_changes(di_new, di_old, root_dir=_TEST_DEST,
+                                      tmp_dir=_TEST_TMP)
+
+    # Generate conflict
+    # Change the dir to file already, but different content, conflict
+    shutil.rmtree(os.path.join(_TEST_SRC, 'dir10_become_file'))
+    f = open(os.path.join(_TEST_SRC, 'dir10_become_file'), 'w')
+    f.write(_TEST_CONFLICT_CONTENT)
+    f.close()
+    # Change the dir to file already, same content, no conflict
+    shutil.rmtree(
+        os.path.join(_TEST_SRC, 'dir2_modified', 'dir2_10_become_file'))
+    f = open(os.path.join(_TEST_SRC, 'dir2_modified', 'dir2_10_become_file'),
+             'w')
+    f.write('dir2_10\n')
+    f.close()
+
+    # Apply dir changes to _TEST_SRC
+    change_entry.apply_dir_changes_to_dir(_TEST_SRC, dc)
+
+    # Verify the dir status
+    os.chdir(_TEST_SRC)
+    di_final = file_info.load_dir_info('.', calculate_hash=True)
+
+    dc_final = change_entry.get_dir_changes(di_final, di_new)
+    self._assertDirChanges(
+        dc_final,
+        special_cases=[
+          (('.'), change_entry.CONTENT_STATUS_MODIFIED),
+          # Existing file has the content already there
+          (('.', 'dir10_become_file'),
+              change_entry.CONTENT_STATUS_MODIFIED, _TEST_CONFLICT_CONTENT),
+          # Conflict copy has the content from the sync
+          (('.', 'dir10_become_file (conflict copy 1)'),
+              change_entry.CONTENT_STATUS_NEW, 'dir10\n')])
+
+  def test_change_entry_conflict_to_dir_but_modified(self):
+    os.chdir(_TEST_DEST)
+    di_new = file_info.load_dir_info('.', calculate_hash=True)
+    os.chdir(_TEST_SRC)
+    di_old = file_info.load_dir_info('.', calculate_hash=True)
+    dc = change_entry.get_dir_changes(di_new, di_old, root_dir=_TEST_DEST,
+                                      tmp_dir=_TEST_TMP)
+
+    # Generate conflict
+    # Modify the files in subdirectory of the dir to become file, conflict
+    f = open(os.path.join(_TEST_SRC, 'dir10_become_file',
+                          'test10_1_deleted.txt'),
+             'w')
+    f.write(_TEST_CONFLICT_CONTENT)
+    f.close()
+
+    # Apply dir changes to _TEST_SRC
+    change_entry.apply_dir_changes_to_dir(_TEST_SRC, dc)
+
+    # Verify the dir status
+    os.chdir(_TEST_SRC)
+    di_final = file_info.load_dir_info('.', calculate_hash=True)
+
+    dc_final = change_entry.get_dir_changes(di_final, di_new)
+    self._assertDirChanges(
+        dc_final,
+        special_cases=[
+          (('.'), change_entry.CONTENT_STATUS_MODIFIED),
+          (('.', 'dir10_become_file (conflict copy 1)'),
+              change_entry.CONTENT_STATUS_NEW, 'dir10\n'),
+          (('.', 'dir10_become_file'),
+              change_entry.CONTENT_STATUS_TO_DIR),
+          (('.', 'dir10_become_file', 'test10_1_deleted.txt'),
+              change_entry.CONTENT_STATUS_NEW, _TEST_CONFLICT_CONTENT)])
+
 
