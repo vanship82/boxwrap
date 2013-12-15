@@ -1,5 +1,6 @@
 import inspect
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -11,7 +12,25 @@ ZIP_PATH = os.path.join(
     os.path.dirname(os.path.abspath(inspect.getfile(
         inspect.currentframe()))),
     'third_party')
-ZIP_BIN = '7za'
+
+
+def _get_binary():
+  arch = platform.architecture()
+  binary = None
+  if arch[1] == 'ELF':
+    # Linux
+    if arch[0] == '32bit':
+      binary = '7za_32'
+    elif arch[0] == '64bit':
+      binary = '7za_64'
+  if not binary:
+    raise Exception('Unable to identity 7-zip binary from platform.')
+  return binary
+
+
+ZIP_BIN = _get_binary()
+
+
 
 INVALID_PASSWORD = 'INVALID_PASSWORD_DO_NOT_USE_AT_ALL_NOTICE_NOTICE_NOTICE'
 
