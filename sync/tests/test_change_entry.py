@@ -238,3 +238,227 @@ class TestChangeEntry(unittest.TestCase):
           (('.', 'test3_deleted.txt'),
               change_entry.CONTENT_STATUS_NEW, _TEST_CONFLICT_CONTENT)])
 
+  def test_change_entry_conflict_dir_new(self):
+    os.chdir(_TEST_DEST)
+    di_new = file_info.load_dir_info('.', calculate_hash=True)
+    os.chdir(_TEST_SRC)
+    di_old = file_info.load_dir_info('.', calculate_hash=True)
+    dc = change_entry.get_dir_changes(di_new, di_old, root_dir=_TEST_DEST,
+                                      tmp_dir=_TEST_TMP)
+
+    # Generate conflict
+    f = open(os.path.join(_TEST_SRC, 'dir11_new'), 'w')
+    # New file, not a directory, conflict
+    f.write(_TEST_CONFLICT_CONTENT)
+    f.close()
+    # New dir, add a new file, no conflict
+    os.mkdir(os.path.join(_TEST_SRC, 'dir2_modified', 'dir2_11_new'))
+    f = open(os.path.join(_TEST_SRC, 'dir2_modified', 'dir2_11_new',
+                          'test_conflict_new.txt'),
+             'w')
+    f.write(_TEST_CONFLICT_CONTENT)
+    f.close()
+
+    # Apply dir changes to _TEST_SRC
+    change_entry.apply_dir_changes_to_dir(_TEST_SRC, dc)
+
+    # Verify the dir status
+    os.chdir(_TEST_SRC)
+    di_final = file_info.load_dir_info('.', calculate_hash=True)
+
+    dc_final = change_entry.get_dir_changes(di_final, di_new)
+    self._assertDirChanges(
+        dc_final,
+        special_cases=[
+          (('.'), change_entry.CONTENT_STATUS_MODIFIED),
+          (('.', 'dir11_new (conflict copy 1)'),
+              change_entry.CONTENT_STATUS_NEW, _TEST_CONFLICT_CONTENT),
+          (('.', 'dir2_modified'),
+              change_entry.CONTENT_STATUS_MODIFIED),
+          (('.', 'dir2_modified', 'dir2_11_new'),
+              change_entry.CONTENT_STATUS_MODIFIED),
+          (('.', 'dir2_modified', 'dir2_11_new', 'test_conflict_new.txt'),
+              change_entry.CONTENT_STATUS_NEW, _TEST_CONFLICT_CONTENT)])
+
+  def test_change_entry_conflict_dir_modified_but_deleted(self):
+    os.chdir(_TEST_DEST)
+    di_new = file_info.load_dir_info('.', calculate_hash=True)
+    os.chdir(_TEST_SRC)
+    di_old = file_info.load_dir_info('.', calculate_hash=True)
+    dc = change_entry.get_dir_changes(di_new, di_old, root_dir=_TEST_DEST,
+                                      tmp_dir=_TEST_TMP)
+
+    # Generate conflict
+    # Delete dir, which was modified, no conflict
+    shutil.rmtree(os.path.join(_TEST_SRC, 'dir2_modified'))
+
+    # Apply dir changes to _TEST_SRC
+    change_entry.apply_dir_changes_to_dir(_TEST_SRC, dc)
+
+    # Verify the dir status
+    os.chdir(_TEST_SRC)
+    di_final = file_info.load_dir_info('.', calculate_hash=True)
+
+    dc_final = change_entry.get_dir_changes(di_final, di_new)
+    self._assertDirChanges(
+          dc_final,
+          [(('.'), change_entry.CONTENT_STATUS_MODIFIED),
+          (('.', 'dir2_modified'),
+              change_entry.CONTENT_STATUS_MODIFIED),
+          (('.', 'dir2_modified', 'test2_1_unchanged.txt'),
+              change_entry.CONTENT_STATUS_DELETED),
+          (('.', 'dir2_modified', 'dir2_1_unchanged'),
+              change_entry.CONTENT_STATUS_DELETED),
+          (('.', 'dir2_modified', 'dir2_1_unchanged',
+            'test2_1_1_unchanged.txt'),
+              change_entry.CONTENT_STATUS_DELETED)])
+
+  def test_change_entry_conflict_dir_modified_but_to_file(self):
+    os.chdir(_TEST_DEST)
+    di_new = file_info.load_dir_info('.', calculate_hash=True)
+    os.chdir(_TEST_SRC)
+    di_old = file_info.load_dir_info('.', calculate_hash=True)
+    dc = change_entry.get_dir_changes(di_new, di_old, root_dir=_TEST_DEST,
+                                      tmp_dir=_TEST_TMP)
+
+    # Generate conflict
+    # Change the dir to file, which was modified, conflict
+    shutil.rmtree(os.path.join(_TEST_SRC, 'dir2_modified', 'dir2_2_modified'))
+    f = open(os.path.join(_TEST_SRC, 'dir2_modified', 'dir2_2_modified'), 'w')
+    f.write(_TEST_CONFLICT_CONTENT)
+    f.close()
+
+    # Apply dir changes to _TEST_SRC
+    change_entry.apply_dir_changes_to_dir(_TEST_SRC, dc)
+
+    # Verify the dir status
+    os.chdir(_TEST_SRC)
+    di_final = file_info.load_dir_info('.', calculate_hash=True)
+
+    dc_final = change_entry.get_dir_changes(di_final, di_new)
+    self._assertDirChanges(
+        dc_final,
+        special_cases=[
+          (('.'), change_entry.CONTENT_STATUS_MODIFIED),
+          (('.', 'dir2_modified'),
+              change_entry.CONTENT_STATUS_MODIFIED),
+          (('.', 'dir2_modified', 'dir2_2_modified (conflict copy 1)'),
+              change_entry.CONTENT_STATUS_NEW, _TEST_CONFLICT_CONTENT)])
+
+  def test_change_entry_conflict_dir_deleted(self):
+    os.chdir(_TEST_DEST)
+    di_new = file_info.load_dir_info('.', calculate_hash=True)
+    os.chdir(_TEST_SRC)
+    di_old = file_info.load_dir_info('.', calculate_hash=True)
+    dc = change_entry.get_dir_changes(di_new, di_old, root_dir=_TEST_DEST,
+                                      tmp_dir=_TEST_TMP)
+
+    # Generate conflict
+    # Delete the dir already, no conflict
+    shutil.rmtree(os.path.join(_TEST_SRC, 'dir3_deleted'))
+
+    # Apply dir changes to _TEST_SRC
+    change_entry.apply_dir_changes_to_dir(_TEST_SRC, dc)
+
+    # Verify the dir status
+    os.chdir(_TEST_SRC)
+    di_final = file_info.load_dir_info('.', calculate_hash=True)
+
+    dc_final = change_entry.get_dir_changes(di_final, di_new)
+    self._assertDirChanges(dc_final)
+
+  def test_change_entry_conflict_dir_deleted_but_to_file(self):
+    os.chdir(_TEST_DEST)
+    di_new = file_info.load_dir_info('.', calculate_hash=True)
+    os.chdir(_TEST_SRC)
+    di_old = file_info.load_dir_info('.', calculate_hash=True)
+    dc = change_entry.get_dir_changes(di_new, di_old, root_dir=_TEST_DEST,
+                                      tmp_dir=_TEST_TMP)
+
+    # Generate conflict
+    # Change the dir to file, which was deleted, no conflict
+    shutil.rmtree(os.path.join(_TEST_SRC, 'dir3_deleted'))
+    f = open(os.path.join(_TEST_SRC, 'dir3_deleted'), 'w')
+    f.write(_TEST_CONFLICT_CONTENT)
+    f.close()
+
+    # Apply dir changes to _TEST_SRC
+    change_entry.apply_dir_changes_to_dir(_TEST_SRC, dc)
+
+    # Verify the dir status
+    os.chdir(_TEST_SRC)
+    di_final = file_info.load_dir_info('.', calculate_hash=True)
+
+    dc_final = change_entry.get_dir_changes(di_final, di_new)
+    self._assertDirChanges(
+        dc_final,
+        special_cases=[
+          (('.'), change_entry.CONTENT_STATUS_MODIFIED),
+          (('.', 'dir3_deleted'),
+              change_entry.CONTENT_STATUS_NEW, _TEST_CONFLICT_CONTENT)])
+
+  def test_change_entry_conflict_dir_deleted_but_to_file(self):
+    os.chdir(_TEST_DEST)
+    di_new = file_info.load_dir_info('.', calculate_hash=True)
+    os.chdir(_TEST_SRC)
+    di_old = file_info.load_dir_info('.', calculate_hash=True)
+    dc = change_entry.get_dir_changes(di_new, di_old, root_dir=_TEST_DEST,
+                                      tmp_dir=_TEST_TMP)
+
+    # Generate conflict
+    # Change the dir to file, which was deleted, no conflict
+    shutil.rmtree(os.path.join(_TEST_SRC, 'dir3_deleted'))
+    f = open(os.path.join(_TEST_SRC, 'dir3_deleted'), 'w')
+    f.write(_TEST_CONFLICT_CONTENT)
+    f.close()
+
+    # Apply dir changes to _TEST_SRC
+    change_entry.apply_dir_changes_to_dir(_TEST_SRC, dc)
+
+    # Verify the dir status
+    os.chdir(_TEST_SRC)
+    di_final = file_info.load_dir_info('.', calculate_hash=True)
+
+    dc_final = change_entry.get_dir_changes(di_final, di_new)
+    self._assertDirChanges(
+        dc_final,
+        special_cases=[
+          (('.'), change_entry.CONTENT_STATUS_MODIFIED),
+          (('.', 'dir3_deleted'),
+              change_entry.CONTENT_STATUS_NEW, _TEST_CONFLICT_CONTENT)])
+
+  def test_change_entry_conflict_dir_deleted_but_modified(self):
+    os.chdir(_TEST_DEST)
+    di_new = file_info.load_dir_info('.', calculate_hash=True)
+    os.chdir(_TEST_SRC)
+    di_old = file_info.load_dir_info('.', calculate_hash=True)
+    dc = change_entry.get_dir_changes(di_new, di_old, root_dir=_TEST_DEST,
+                                      tmp_dir=_TEST_TMP)
+
+    # Generate conflict
+    # Change the dir to file, which was deleted, no conflict
+    f = open(os.path.join(_TEST_SRC, 'dir3_deleted', 'dir3_1_deleted',
+                          'test3_1_1_deleted.txt'),
+             'w')
+    f.write(_TEST_CONFLICT_CONTENT)
+    f.close()
+
+    # Apply dir changes to _TEST_SRC
+    change_entry.apply_dir_changes_to_dir(_TEST_SRC, dc)
+
+    # Verify the dir status
+    os.chdir(_TEST_SRC)
+    di_final = file_info.load_dir_info('.', calculate_hash=True)
+
+    dc_final = change_entry.get_dir_changes(di_final, di_new)
+    self._assertDirChanges(
+        dc_final,
+        special_cases=[
+          (('.'), change_entry.CONTENT_STATUS_MODIFIED),
+          (('.', 'dir3_deleted'),
+              change_entry.CONTENT_STATUS_NEW),
+          (('.', 'dir3_deleted', 'dir3_1_deleted'),
+              change_entry.CONTENT_STATUS_NEW),
+          (('.', 'dir3_deleted', 'dir3_1_deleted', 'test3_1_1_deleted.txt'),
+              change_entry.CONTENT_STATUS_NEW, _TEST_CONFLICT_CONTENT)])
+

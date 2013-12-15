@@ -283,7 +283,16 @@ def _get_file_conflict_state(change, full_path):
 
 
 def _get_dir_conflict_state(change, full_path):
-  return _CONFLICT_NO_CONFLICT
+  if os.path.isdir(full_path):
+    return _CONFLICT_NO_CONFLICT
+  elif os.path.isfile(full_path):
+    if change.content_status == CONTENT_STATUS_DELETED:
+      # Maybe both _CONFLICT_NEW and _CONFLICT_DEST are OK?
+      return _CONFLICT_NEW
+    else:
+      return _CONFLICT_DEST
+  else:
+    return _CONFLICT_NO_CONFLICT
 
 
 def apply_dir_changes_to_dir(dest_dir, dir_changes):
@@ -308,7 +317,7 @@ def apply_dir_changes_to_dir(dest_dir, dir_changes):
 
     elif c.content_status == CONTENT_STATUS_TO_DIR:
       if not os.path.exists(full_path):
-        os.makedir(full_path)
+        os.mkdir(full_path)
         apply_dir_changes_to_dir(dest_dir, c.dir_changes)
       elif os.path.isdir(full_path):
         apply_dir_changes_to_dir(dest_dir, c.dir_changes)
@@ -357,7 +366,7 @@ def apply_dir_changes_to_dir(dest_dir, dir_changes):
         conflict_state = _get_dir_conflict_state(c, full_path)
         if conflict_state == _CONFLICT_NO_CONFLICT:
           apply_dir_changes_to_dir(dest_dir, c.dir_changes)
-          if not os.listdir(full_path):
+          if os.path.isdir(full_path) and not os.listdir(full_path):
             os.rmdir(full_path)
       else:
         # No change
