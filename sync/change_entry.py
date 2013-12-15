@@ -276,7 +276,8 @@ def _get_file_conflict_state(change, full_path):
         (change.cur_info and not change.cur_info.is_modified(fi))):
       return _CONFLICT_NO_CONFLICT
     else:
-      return _CONFLICT_DEST
+      # Keep the dest unchanged, because it may be opened
+      return _CONFLICT_NEW
   else:
     # No exist
     return _CONFLICT_NO_CONFLICT
@@ -290,6 +291,7 @@ def _get_dir_conflict_state(change, full_path):
       # Maybe both _CONFLICT_NEW and _CONFLICT_DEST are OK?
       return _CONFLICT_NEW
     else:
+      # Change the dest unchanged, because it is hard to rename dir
       return _CONFLICT_DEST
   else:
     return _CONFLICT_NO_CONFLICT
@@ -325,7 +327,7 @@ def apply_dir_changes_to_dir(dest_dir, dir_changes):
         # full_path is still a file
         if c.old_info.is_modified(file_info.load_file_info(full_path)):
           # Conflict, the existing file is changed
-          os.rename(_get_conflict_copy_path(full_path))
+          os.rename(full_path, _get_conflict_copy_path(full_path))
         else:
           os.remove(full_path)
         os.mkdir(full_path)
