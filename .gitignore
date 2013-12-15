@@ -37,4 +37,5 @@ nosetests.xml
 
 # test cases
 tests/cases
+test_tmp
 
