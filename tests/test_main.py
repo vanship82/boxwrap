@@ -49,6 +49,9 @@ class TestBoxWrap(unittest.TestCase):
     self.under_test = main.BoxWrap(_TEST_WORKING, _TEST_CLOUD, _TEST_TMP,
                                    _TEST_FI_CSV, password='123456')
 
+    self.working_di, self.cloud_di = self.under_test.sync(
+        file_info.empty_dir_info('.'))
+
   def _assertFileContent(self, content, file_path, debug=False):
     with open(file_path, 'r') as f:
       if debug:
@@ -113,11 +116,50 @@ class TestBoxWrap(unittest.TestCase):
       print x
 
   def testInitialSync(self):
-    result = self.under_test.sync(file_info.empty_dir_info('.'))
-    self._print_di('*********** working_di', result[0])
-    self._print_di('*********** cloud_di', result[1])
-
-    dc = change_entry.get_dir_changes(result[0], result[1])
+    dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
     self._assertDirChanges(dc, debug=True)
 
+    self.working_di, self.cloud_di = self.under_test.sync(
+        self.working_di)
+
+    dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
+    self._assertDirChanges(dc, debug=True)
+
+  def testSyncWorkingFileNewModifiedDelete(self):
+    f = open(os.path.join(_TEST_WORKING, 'test_new.txt'), 'w')
+    f.write('test_new')
+    f.close()
+    f = open(os.path.join(_TEST_WORKING, 'dir1', 'test1_1.txt'), 'w')
+    f.write('test_modified')
+    f.close()
+    os.remove(os.path.join(_TEST_WORKING, 'test1.txt'))
+
+    self.working_di, self.cloud_di = self.under_test.sync(self.working_di)
+
+    dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
+    self._assertDirChanges(dc, debug=True)
+
+  def testSyncCloudFileNewModifiedDelete(self):
+    shutil.move(
+        compression.get_compressed_filename(
+            os.path.join(_TEST_CLOUD, 'dir1', 'test1_1.txt')),
+        compression.get_compressed_filename(
+            os.path.join(_TEST_CLOUD, 'test_new.txt')))
+    shutil.move(
+        compression.get_compressed_filename(
+            os.path.join(_TEST_CLOUD, 'test1.txt')),
+        compression.get_compressed_filename(
+            os.path.join(_TEST_CLOUD, 'dir1', 'test1_1.txt')))
+
+    self.working_di, self.cloud_di = self.under_test.sync(
+        self.working_di, debug=False)
+
+    dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
+    self._assertDirChanges(dc, debug=True)
+    self.assertFalse(os.path.exists(
+        os.path.join(_TEST_WORKING, 'test1.txt')))
+    self._assertFileContent(
+        'test1_1\n', os.path.join(_TEST_WORKING, 'test_new.txt'))
+    self._assertFileContent(
+        'test1\n', os.path.join(_TEST_WORKING, 'dir1', 'test1_1.txt'))
 

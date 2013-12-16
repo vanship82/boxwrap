@@ -15,7 +15,7 @@ class FileInfo:
 
   def __init__(
       self, path, is_dir, mode, size, last_modified_time, file_hash=None,
-      tmp_file=None, compressed_file_info=None):
+      tmp_file=None, compressed_file_info=None, original_file_info=None):
     self.path = path
     self.is_dir = is_dir
     self.mode = mode
@@ -24,6 +24,7 @@ class FileInfo:
     self.file_hash = file_hash
     self.tmp_file = tmp_file
     self.compressed_file_info = compressed_file_info
+    self.original_file_info = original_file_info
 
   def copy(self, other):
     self.path = other.path
@@ -34,6 +35,7 @@ class FileInfo:
     self.file_hash = other.file_hash
     self.tmp_file = other.tmp_file
     self.compressed_file_info = other.compressed_file_info
+    self.original_file_info = other.original_file_info
 
   def calculate_hash(self, overwrite=False):
     if self.is_dir:
@@ -81,7 +83,7 @@ class FileInfo:
   def __str__(self):
     return (
         'path: %s, is_dir: %s, mode: 0%o size: %s, last_modified_time: %s, '
-        'file_hash: %s, tmp_file: %s%s' % (
+        'file_hash: %s, tmp_file: %s%s%s' % (
             self.path,
             self.is_dir,
             self.mode,
@@ -90,7 +92,9 @@ class FileInfo:
             self.file_hash,
             self.tmp_file,
             ('\n    compressed_file_info: %s' % self.compressed_file_info
-                if self.compressed_file_info else '')))
+                if self.compressed_file_info else ''),
+            ('\n    original_file_info: %s' % self.original_file_info
+                if self.original_file_info else '')))
 
 
 def _calculate_hash(path):
