@@ -120,7 +120,7 @@ def _merge_both_files(c1, c2, dc_new1, dc_old1, dc_new2, dc_old2,
       if c1.cur_info.is_modified(c2.cur_info, force_check_content=True):
         _sync_change(c1, dc_new1, dc_old1, change_on_dc_new=False)
         _sync_change(c1, dc_new2, dc_old2,
-                     content_status_new=change_entry.CONTENT_STATUS_MODIFIE,
+                     content_status_new=change_entry.CONTENT_STATUS_MODIFIED,
                      conflict_info=c2.cur_info)
         dc_conflict.add_change(c2)
       else:

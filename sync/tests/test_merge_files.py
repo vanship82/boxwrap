@@ -223,6 +223,16 @@ class TestMergeFiles(unittest.TestCase):
     self.assertEquals(3, len(self.changes_old2))
     self.assertEquals(2, len(self.changes_conflict))
 
+    self.assertFalse(
+        self.dc_new2
+            .change('.').dir_changes
+            .change(os.path.join('.',  _TEST_CASE_FILE_NEW))
+            .conflict_info.is_modified(
+                self.dc_conflict
+                    .change('.').dir_changes
+                    .change(os.path.join('.', _TEST_CASE_FILE_NEW))
+                    .cur_info))
+
     self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
                               self.dc_new1,
                               os.path.join('.', _TEST_CASE_FILE_NEW))
@@ -336,6 +346,17 @@ class TestMergeFiles(unittest.TestCase):
     self.assertEquals(2, len(self.changes_new2))
     self.assertEquals(2, len(self.changes_old2))
     self.assertEquals(2, len(self.changes_conflict))
+
+    self.assertFalse(
+        self.dc_new2
+            .change('.').dir_changes
+            .change(os.path.join('.',  _TEST_CASE_FILE))
+            .conflict_info.is_modified(
+                self.dc_conflict
+                    .change('.').dir_changes
+                    .change(os.path.join('.', _TEST_CASE_FILE))
+                    .cur_info))
+
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
                               self.dc_new1,
