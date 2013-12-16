@@ -32,6 +32,7 @@ class BoxWrap:
       print x
       print '    cur_info: %s' % x.cur_info
       print '    old_info: %s' % x.old_info
+      print '    conflict_info: %s' % x.conflict_info
 
   # TODO: debug only, remove it
   def _print_di(self, name, dir_info):
@@ -77,7 +78,8 @@ class BoxWrap:
     cloud_dc_new = self._extract_compressed_dir_changes(result[2])
     cloud_dc_old = result[3]
     if debug:
-      self._print_changes('********** working_dc_new', working_dc_new)
+      self._print_changes('********** cloud_dc_new', cloud_dc_new)
+      self._print_changes('********** conflict_dc', result[4])
     if debug:
       print '============== step 4: %s' % (time.time() - tstart)
 
@@ -177,6 +179,13 @@ class BoxWrap:
         cur_info = copy.deepcopy(c.cur_info.compressed_file_info)
       else:
         cur_info = copy.deepcopy(c.cur_info)
+
+      conflict_info = None
+      if c.conflict_info and c.conflict_info.compressed_file_info:
+        conflict_info = copy.deepcopy(c.conflict_info.compressed_file_info)
+      else:
+        conflict_info = copy.deepcopy(c.conflict_info)
+
       path = cur_info.path if cur_info else old_info.path
 
       new_dir_changes.add_change(change_entry.ChangeEntry(
@@ -184,7 +193,8 @@ class BoxWrap:
         dir_changes=(self._extract_compressed_dir_changes(
             c.dir_changes, parent_dir_changes=new_dir_changes)
             if c.dir_changes else None),
-        parent_dir_changes=new_dir_changes))
+        parent_dir_changes=new_dir_changes,
+        conflict_info=conflict_info))
 
     return new_dir_changes
 

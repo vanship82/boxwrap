@@ -20,7 +20,8 @@ def _sync_conflict(change, dc_conflict, dir_changes=None):
 def _sync_change(change, dc_new, dc_old, change_on_dc_new=True,
                  dir_changes_new=None, dir_changes_old=None,
                  content_status_new=change_entry.CONTENT_STATUS_UNSPECIFIED,
-                 content_status_old=change_entry.CONTENT_STATUS_UNSPECIFIED):
+                 content_status_old=change_entry.CONTENT_STATUS_UNSPECIFIED,
+                 conflict_info=None):
   cur_info = copy.deepcopy(change.cur_info) if change.cur_info else None
   old_info = copy.deepcopy(change.old_info) if change.old_info else None
   if content_status_new == change_entry.CONTENT_STATUS_UNSPECIFIED:
@@ -57,13 +58,15 @@ def _sync_change(change, dc_new, dc_old, change_on_dc_new=True,
     dc_new.add_change(
         change_entry.ChangeEntry(
             change.path, cur_info, old_info, content_status_new,
-            dir_changes=dir_changes_new, parent_dir_changes=dc_new))
+            dir_changes=dir_changes_new, parent_dir_changes=dc_new,
+            conflict_info=conflict_info))
   elif change.content_status != change_entry.CONTENT_STATUS_DELETED:
     dc_new.add_change(
         change_entry.ChangeEntry(
             change.path, change.cur_info, change.cur_info,
             change_entry.CONTENT_STATUS_NO_CHANGE,
-            dir_changes=dir_changes_new, parent_dir_changes=dc_new))
+            dir_changes=dir_changes_new, parent_dir_changes=dc_new,
+            conflict_info=conflict_info))
 
 
 def _merge_both_files(c1, c2, dc_new1, dc_old1, dc_new2, dc_old2,
@@ -100,7 +103,7 @@ def _merge_both_files(c1, c2, dc_new1, dc_old1, dc_new2, dc_old2,
     if c2.content_status == change_entry.CONTENT_STATUS_MODIFIED:
       # conflict, sync c1 to c2 and put c2 into conflict
       _sync_change(c1, dc_new1, dc_old1, change_on_dc_new=False)
-      _sync_change(c1, dc_new2, dc_old2)
+      _sync_change(c1, dc_new2, dc_old2, conflict_info=c2.cur_info)
       dc_conflict.add_change(c2)
     elif c2.content_status == change_entry.CONTENT_STATUS_DELETED:
       # sync c1 to c2
@@ -117,7 +120,8 @@ def _merge_both_files(c1, c2, dc_new1, dc_old1, dc_new2, dc_old2,
       if c1.cur_info.is_modified(c2.cur_info, force_check_content=True):
         _sync_change(c1, dc_new1, dc_old1, change_on_dc_new=False)
         _sync_change(c1, dc_new2, dc_old2,
-                     content_status_new=change_entry.CONTENT_STATUS_MODIFIED)
+                     content_status_new=change_entry.CONTENT_STATUS_MODIFIE,
+                     conflict_info=c2.cur_info)
         dc_conflict.add_change(c2)
       else:
         # New files are identical, no sync

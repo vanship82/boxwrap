@@ -18,13 +18,15 @@ CONTENT_STATUS_DELETED = 5
 class ChangeEntry:
 
   def __init__(self, path, cur_info, old_info, content_status,
-               dir_changes=None, parent_dir_changes=None):
+               dir_changes=None, parent_dir_changes=None,
+               conflict_info=None):
     self.path = path
     self.cur_info = cur_info
     self.old_info = old_info
     self.content_status = content_status
     self.dir_changes = dir_changes
     self.parent_dir_changes = parent_dir_changes
+    self.conflict_info = conflict_info
 
   def parent_change_path(self):
     if self.content_status != CONTENT_STATUS_DELETED:
@@ -287,7 +289,8 @@ def _get_file_conflict_state(change, full_path):
   elif os.path.isfile(full_path):
     fi = file_info.load_file_info(full_path)
     if ((change.old_info and not change.old_info.is_modified(fi)) or
-        (change.cur_info and not change.cur_info.is_modified(fi))):
+        (change.cur_info and not change.cur_info.is_modified(fi)) or
+        (change.conflict_info and not change.conflict_info.is_modified(fi))):
       return _CONFLICT_NO_CONFLICT
     else:
       # Keep the dest unchanged, because it may be opened
