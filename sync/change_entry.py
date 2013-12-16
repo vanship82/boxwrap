@@ -127,14 +127,20 @@ class DirChanges:
 
 # return random file name
 def _copy_to_tmp_dir(root_dir, path, tmp_dir):
+  random_file_name = generate_tmp_file(tmp_dir)
+  full_file_name = os.path.join(tmp_dir, random_file_name)
+  # TODO: guard that if path has been deleted or changed to dir,
+  # maybe just create a placeholder tmp_file
+  shutil.copy2(os.path.join(root_dir, path), full_file_name)
+  return random_file_name
+
+
+def generate_tmp_file(tmp_dir):
   while True:
     random_file_name = '%032x' % random.getrandbits(128)
     full_file_name = os.path.join(tmp_dir, random_file_name)
     if not os.path.exists(full_file_name):
-      break
-
-  shutil.copy2(os.path.join(root_dir, path), full_file_name)
-  return random_file_name
+      return random_file_name
 
 
 # root_dir is the root for new_dir_info
