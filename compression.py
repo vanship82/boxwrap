@@ -106,7 +106,8 @@ def compress_file(src_file, dest_file,
     params.append('-p%s' % password)
     params.append('-mem=%s' % encryption_method)
 
-  params.append(os.path.abspath(dest_file))
+  abs_dest_file = os.path.abspath(dest_file)
+  params.append(abs_dest_file)
   params.append(os.path.basename(src_file))
 
   try:
@@ -115,6 +116,10 @@ def compress_file(src_file, dest_file,
     subprocess.check_call(params, shell=False,
                           stderr=open('/dev/null'),
                           stdout=open('/dev/null'))
+    # Hack: 7za always add .zip subfix, remove it
+    if (not abs_dest_file.endswith('.zip') and
+        os.path.exists(abs_dest_file + '.zip')):
+      os.rename(abs_dest_file + '.zip', abs_dest_file)
     os.chdir(cwd)
     shutil.copystat(src_file, dest_file)
     return dest_file

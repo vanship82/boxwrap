@@ -250,16 +250,18 @@ def merge(dir_changes1, dir_changes2,
           parent_dir_changes_new2=None,
           parent_dir_changes_old2=None,
           parent_dir_changes_conflict=None):
-  dc_new1 = change_entry.DirChanges(dir_changes1.base_dir(),
+  base_dir = (
+      dir_changes1.base_dir() if dir_changes1 else dir_changes2.base_dir())
+  dc_new1 = change_entry.DirChanges(base_dir,
                                     change_entry.CONTENT_STATUS_UNSPECIFIED,
                                     parent_dir_changes=parent_dir_changes_new1)
-  dc_old1 = change_entry.DirChanges(dir_changes1.base_dir(),
+  dc_old1 = change_entry.DirChanges(base_dir,
                                     change_entry.CONTENT_STATUS_UNSPECIFIED,
                                     parent_dir_changes=parent_dir_changes_old1)
-  dc_new2 = change_entry.DirChanges(dir_changes2.base_dir(),
+  dc_new2 = change_entry.DirChanges(base_dir,
                                     change_entry.CONTENT_STATUS_UNSPECIFIED,
                                     parent_dir_changes=parent_dir_changes_new2)
-  dc_old2 = change_entry.DirChanges(dir_changes2.base_dir(),
+  dc_old2 = change_entry.DirChanges(base_dir,
                                     change_entry.CONTENT_STATUS_UNSPECIFIED,
                                     parent_dir_changes=parent_dir_changes_old2)
   dc_conflict = change_entry.DirChanges(
@@ -274,8 +276,8 @@ def merge(dir_changes1, dir_changes2,
                         dc_conflict)
     else:
       _merge_both_dirs(c1, c2,
-                       dir_changes1.dir_changes(c1.path),
-                       dir_changes2.dir_changes(c2.path),
+                       dir_changes1.dir_changes(c1.path) if c1 else None,
+                       dir_changes2.dir_changes(c2.path) if c2 else None,
                        dc_new1, dc_old1, dc_new2, dc_old2,
                        dc_conflict)
 

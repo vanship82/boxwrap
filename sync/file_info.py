@@ -15,7 +15,7 @@ class FileInfo:
 
   def __init__(
       self, path, is_dir, mode, size, last_modified_time, file_hash=None,
-      tmp_file=None):
+      tmp_file=None, compressed_file_info=None):
     self.path = path
     self.is_dir = is_dir
     self.mode = mode
@@ -23,6 +23,17 @@ class FileInfo:
     self.last_modified_time = last_modified_time
     self.file_hash = file_hash
     self.tmp_file = tmp_file
+    self.compressed_file_info = compressed_file_info
+
+  def copy(self, other):
+    self.path = other.path
+    self.is_dir = other.is_dir
+    self.mode = other.mode
+    self.size = other.size
+    self.last_modified_time = other.last_modified_time
+    self.file_hash = other.file_hash
+    self.tmp_file = other.tmp_file
+    self.compressed_file_info = other.compressed_file_info
 
   def calculate_hash(self, overwrite=False):
     if self.is_dir:
@@ -70,13 +81,16 @@ class FileInfo:
   def __str__(self):
     return (
         'path: %s, is_dir: %s, mode: 0%o size: %s, last_modified_time: %s, '
-        'file_hash: %s' % (
+        'file_hash: %s, tmp_file: %s%s' % (
             self.path,
             self.is_dir,
             self.mode,
             self.size,
             self.last_modified_time,
-            self.file_hash))
+            self.file_hash,
+            self.tmp_file,
+            ('\n    compressed_file_info: %s' % self.compressed_file_info
+                if self.compressed_file_info else '')))
 
 
 def _calculate_hash(path):
@@ -131,8 +145,8 @@ def load_from_csv_row(row):
 # A sorted list of file info in the directory
 class DirInfo:
 
-  def __init__(self, base_dir, file_info_list, dir_info_dict):
-    self._file_info_list = _sort_file_info_list(list(file_info_list))
+  def __init__(self, base_dir, file_info_list, dir_info_dict, key=None):
+    self._file_info_list = _sort_file_info_list(list(file_info_list), key=key)
     self._fi_dict = {(x.path, x) for x in self._file_info_list}
     self._dir_info_dict = dir_info_dict
     self._base_dir = base_dir
@@ -149,7 +163,8 @@ class DirInfo:
   def flat_file_info_list(self):
     for fi in self._file_info_list:
       yield fi
-      if fi.is_dir:
+      if (fi.is_dir and fi.path in self._dir_info_dict
+          and self._dir_info_dict[fi.path]):
         for sub_fi in self._dir_info_dict[fi.path].flat_file_info_list():
           yield sub_fi
 
@@ -190,13 +205,14 @@ class DirInfo:
       f.write('\n')
 
 
-def _sort_file_info_list(file_info_list):
-  file_info_list.sort(
-      key=lambda file_info: file_info.path_for_sorting())
+def _sort_file_info_list(file_info_list, key=None):
+  if not key:
+    key=lambda file_info: file_info.path_for_sorting()
+  file_info_list.sort(key=key)
   return file_info_list
 
 
-def load_dir_info_from_csv(f, base_dir):
+def load_dir_info_from_csv(f, base_dir, key=None):
   reader = i18n.UnicodeReader(f)
   file_info_list = []
   for row in reader:
@@ -204,12 +220,12 @@ def load_dir_info_from_csv(f, base_dir):
       continue
     file_info_list.append(load_from_csv_row(row))
   dir_info, unused = _sorted_file_info_list_to_dir_info(
-      base_dir, file_info_list, 0)
+      base_dir, file_info_list, 0, key=key)
   return dir_info
 
 
 # recursively
-def load_dir_info(dir_path, calculate_hash=False):
+def load_dir_info(dir_path, calculate_hash=False, key=None):
   file_info_list = []
   for root, dirs, files in os.walk(dir_path):
     file_info_list.append(load_file_info(root))
@@ -217,31 +233,35 @@ def load_dir_info(dir_path, calculate_hash=False):
       file_info_list.append(load_file_info(os.path.join(root, f),
                             calculate_hash=calculate_hash))
   dir_info, unused = _sorted_file_info_list_to_dir_info(
-      dir_path, file_info_list, 0)
+      dir_path, file_info_list, 0, key=key)
   return dir_info
 
 
 # Load as relative path
-def load_rel_dir_info(dir_path):
+def load_rel_dir_info(dir_path, key=None):
   old_cwd = os.getcwd()
   os.chdir(dir_path)
-  dir_info = load_dir_info('.')
+  dir_info = load_dir_info('.', key=None)
   os.chdir(old_cwd)
   return dir_info
 
 
-def load_dir_info_from_file_info_list(base_dir, file_info_list):
+def load_dir_info_from_file_info_list(base_dir, file_info_list, key=None):
   dir_info, unused = _sorted_file_info_list_to_dir_info(
-      base_dir, _sort_file_info_list(file_info_list), 0)
+      base_dir, _sort_file_info_list(file_info_list, key=key), 0)
   return dir_info
 
 
 def empty_dir_info(dir_path):
-  return DirInfo(dir_path, [])
+  stat = os.stat(dir_path)
+  return DirInfo(
+      dir_path,
+      [FileInfo(dir_path, True, stat.st_mode, None, stat.st_mtime)],
+      {dir_path: None})
 
 
 def _sorted_file_info_list_to_dir_info(
-    base, sorted_file_info_list, start_index):
+    base, sorted_file_info_list, start_index, key=None):
   i = start_index
   base_file_info_list = []
   base_dir_info_dict = {}
@@ -257,5 +277,5 @@ def _sorted_file_info_list_to_dir_info(
     else:
       base_file_info_list.append(fi)
     i += 1
-  return DirInfo(base, base_file_info_list, base_dir_info_dict), i - 1
+  return DirInfo(base, base_file_info_list, base_dir_info_dict, key=key), i - 1
 
