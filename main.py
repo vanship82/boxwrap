@@ -67,8 +67,6 @@ class BoxWrap:
                                             tmp_dir=self.tmp_dir)
     cloud_dc = self._generate_original_dir_changes(cloud_dc)
     if debug:
-      self._print_changes('********** cloud_dc', cloud_dc)
-    if debug:
       print '============== step 3: %s' % (time.time() - tstart)
 
     result = merge.merge(working_dc, cloud_dc)
@@ -77,17 +75,26 @@ class BoxWrap:
     working_dc_old = result[1]
     cloud_dc_new = self._extract_compressed_dir_changes(result[2])
     cloud_dc_old = result[3]
+    working_dc_conflict = result[4]
+    cloud_dc_conflict = self._extract_compressed_dir_changes(
+        working_dc_conflict)
     if debug:
-      self._print_changes('********** cloud_dc_new', cloud_dc_new)
-      self._print_changes('********** conflict_dc', result[4])
+      self._print_changes('********** working_dc_conflict', working_dc_conflict)
+      self._print_changes('********** cloud_dc_conflict', cloud_dc_conflict)
     if debug:
       print '============== step 4: %s' % (time.time() - tstart)
 
     change_entry.apply_dir_changes_to_dir(self.working_dir, working_dc_new)
+    change_entry.apply_dir_changes_to_dir(
+        self.working_dir, working_dc_conflict,
+        force_conflict=change_entry.CONFLICT_NEW)
     working_di = change_entry.apply_dir_changes_to_dir_info('.', working_dc_old)
     if debug:
       print '============== step 5: %s' % (time.time() - tstart)
     change_entry.apply_dir_changes_to_dir(self.cloud_dir, cloud_dc_new)
+    change_entry.apply_dir_changes_to_dir(
+        self.cloud_dir, cloud_dc_conflict,
+        force_conflict=change_entry.CONFLICT_NEW)
     cloud_di = change_entry.apply_dir_changes_to_dir_info('.', cloud_dc_old)
     if debug:
       print '============== step 6: %s' % (time.time() - tstart)
@@ -139,7 +146,6 @@ class BoxWrap:
                                       password=self.password)
           tmp_fi = file_info.load_file_info(original_tmp_file)
           compressed_file_info = copy.deepcopy(c.cur_info)
-          compressed_file_info.tmp_file = None
           compressed_file_info.compressed_file_info = None
           compressed_file_info.original_file_info = None
           cur_info = file_info.FileInfo(

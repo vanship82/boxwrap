@@ -11,9 +11,17 @@ from util import util
 
 def _sync_conflict(change, dc_conflict, dir_changes=None):
   cur_info = copy.deepcopy(change.cur_info) if change.cur_info else None
+  content_status = change_entry.CONTENT_STATUS_NO_CHANGE
+  if dir_changes and dir_changes.changes():
+    if dir_changes.dir_status() == change_entry.CONTENT_STATUS_NEW:
+      # Because the conflicts are applied after normal flow,
+      # the dir has been created so change the status to modified
+      content_status = change_entry.CONTENT_STATUS_MODIFIED
+    else:
+      content_status = dir_changes.dir_status()
   dc_conflict.add_change(
       change_entry.ChangeEntry(
-          change.path, cur_info, None, change_entry.CONTENT_STATUS_NO_CHANGE,
+          change.path, cur_info, None, content_status,
           dir_changes=dir_changes, parent_dir_changes=dc_conflict))
 
 

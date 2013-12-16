@@ -95,6 +95,22 @@ def is_compressed_filename(filename):
   return filename.endswith(COMPRESSED_FILENAME_SUFFIX)
 
 
+def generate_conflict_copy_path(path, count):
+  path2 = get_original_filename(path)
+  dirname, basename = os.path.split(path2)
+  splits = basename.split('.')
+  if len(splits) > 1:
+    path3 = os.path.join(
+        dirname,
+        '.'.join(splits[:-1]) + ' (conflict copy %s).%s' % (count , splits[-1]))
+  else:
+    path3 = os.path.join(dirname, basename + ' (conflict copy %s)' %  count)
+  if is_compressed_filename(path):
+    return get_compressed_filename(path3)
+  else:
+    return path3
+
+
 # @return   output filename, if success; None and exceptions otherwise.
 def compress_file(src_file, dest_file,
                   compression_level=COMPRESSION_LEVEL_NORMAL,
