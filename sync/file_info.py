@@ -115,7 +115,9 @@ def copy_with_tmp_file(file_info, tmp_file, tmp_dir):
     file_hash = _calculate_hash(full_tmp_path)
   return FileInfo(file_info.path, file_info.is_dir, file_info.mode,
                   file_info.size, file_info.last_modified_time,
-                  file_hash=file_hash, tmp_file=full_tmp_path)
+                  file_hash=file_hash, tmp_file=full_tmp_path,
+                  original_file_info=file_info.original_file_info,
+                  compressed_file_info=file_info.compressed_file_info)
 
 
 def load_file_info(path, calculate_hash=False):
@@ -151,7 +153,7 @@ class DirInfo:
 
   def __init__(self, base_dir, file_info_list, dir_info_dict, key=None):
     self._file_info_list = _sort_file_info_list(list(file_info_list), key=key)
-    self._fi_dict = {(x.path, x) for x in self._file_info_list}
+    self._fi_dict = dict([(x.path, x) for x in self._file_info_list])
     self._dir_info_dict = dir_info_dict
     self._base_dir = base_dir
 
@@ -173,8 +175,10 @@ class DirInfo:
           yield sub_fi
 
   def has_file(self, path):
-    fi = self._fi_dict[path]
-    relpath = os.path.relpath(pth, self._base_dir)
+    # Hack since '.' shows up twice in DirInfo tree
+    if '.' in self._dir_info_dict:
+      return self._dir_info_dict['.'].has_file(path)
+    relpath = os.path.relpath(path, self._base_dir)
     if '..' in relpath:
       return False
     relpath_split = relpath.split(os.sep)
@@ -188,8 +192,10 @@ class DirInfo:
         return False
 
   def get(self, path):
-    fi = self._fi_dict[path]
-    relpath = os.path.relpath(pth, self._base_dir)
+    # Hack since '.' shows up twice in DirInfo tree
+    if '.' in self._dir_info_dict:
+      return self._dir_info_dict['.'].get(path)
+    relpath = os.path.relpath(path, self._base_dir)
     if '..' in relpath:
       return None
     relpath_split = relpath.split(os.sep)

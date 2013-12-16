@@ -194,6 +194,14 @@ def get_dir_changes(new_dir_info, old_dir_info, parent_dir_changes=None,
           content_status = CONTENT_STATUS_NO_CHANGE
 
       path = e_new_info.path
+      if (not e_new_info.compressed_file_info
+          and e_old_info.compressed_file_info
+          and content_status == CONTENT_STATUS_NO_CHANGE):
+        e_new_info.compressed_file_info = e_old_info.compressed_file_info
+      if (not e_new_info.original_file_info
+          and e_old_info.original_file_info
+          and content_status == CONTENT_STATUS_NO_CHANGE):
+        e_new_info.original_file_info = e_old_info.original_file_info
       if tmp_file:
         e_new_info = file_info.copy_with_tmp_file(e_new_info, tmp_file, tmp_dir)
       change = ChangeEntry(

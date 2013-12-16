@@ -77,7 +77,7 @@ class BoxWrap:
     cloud_dc_new = self._extract_compressed_dir_changes(result[2])
     cloud_dc_old = result[3]
     if debug:
-      self._print_changes('********** cloud_dc_new', cloud_dc_new)
+      self._print_changes('********** working_dc_new', working_dc_new)
     if debug:
       print '============== step 4: %s' % (time.time() - tstart)
 

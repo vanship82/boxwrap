@@ -119,11 +119,13 @@ class TestBoxWrap(unittest.TestCase):
     dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
     self._assertDirChanges(dc, debug=True)
 
-    self.working_di, self.cloud_di = self.under_test.sync(
-        self.working_di)
+    self.working_di, self.cloud_di = self.under_test.sync(self.working_di)
 
     dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
     self._assertDirChanges(dc, debug=True)
+    self.assertIsNotNone(
+        self.working_di.get(os.path.join('.', 'test1.txt'))
+            .compressed_file_info)
 
   def testSyncWorkingFileNewModifiedDelete(self):
     f = open(os.path.join(_TEST_WORKING, 'test_new.txt'), 'w')
