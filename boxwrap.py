@@ -2,13 +2,16 @@ import argparse
 import collections
 import compression
 import ConfigParser
+import getpass
 import os
-import shutil
 import sys
+
+import main
+from sync import file_info
 
 
 _PROFILE_INFO_FILE='profile.ini'
-_PROFILE_DIR_FILE='profile_dir.csv'
+_PROFILE_DIR_INFO_FILE='profile_dir.csv'
 _PROFILE_TMP_DIR='tmp'
 
 _PROFILE_INFO_SECTION='BoxWrap'
@@ -198,7 +201,19 @@ def _validate_args_and_update_profile(args):
 
 def _boxwrap():
   args = _validate_args_and_update_profile(_parse_args())
-  print args
+  password = None
+  if args['password']:
+    password = getpass.getpass(
+        'Please enter password for encrypting/decrypting wrap_dir:')
+  boxwrap = main.BoxWrap(
+      args['working_dir'], args['wrap_dir'],
+      os.path.join(args['profile_dir'], _PROFILE_TMP_DIR),
+      os.path.join(args['profile_dir'], _PROFILE_DIR_INFO_FILE),
+      password=password,
+      encryption_method=_ENCRYPTION_CHOICES[args['encryption_method']],
+      compression_level=_COMPRESSION_CHOICES[args['compression_level']])
+  boxwrap.sync(file_info.empty_dir_info('.'), debug=True)
+
 
 if __name__ == '__main__':
   _boxwrap()
