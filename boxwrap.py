@@ -1,183 +1,205 @@
+import argparse
+import collections
 import compression
+import ConfigParser
 import os
 import shutil
 import sys
-import unison
-
-class BoxWrap:
-
-  def __init__(self, working_dir, cloud_dir, intermediate_base,
-               reinit=False,
-               unison_path=None, password=None,
-               encryption_method=compression.ENCRYPTION_AES_256):
-    self.working_dir = working_dir
-    self.cloud_dir = cloud_dir
-    self.intermediate_base = intermediate_base
-    self.unison_path = unison_path
-    self.password = password
-    self.encryption_method = encryption_method
-
-    self.working_original_im = self.check_and_init_intermediate_dir(
-        os.path.join(intermediate_base, 'working_orignal'),
-        force=reinit)
-    self.cloud_original_im = self.check_and_init_intermediate_dir(
-        os.path.join(intermediate_base, 'cloud_orignal'),
-        sync_dir=self.working_original_im,
-        force=reinit)
-    self.cloud_wrapped_im = self.check_and_init_intermediate_dir(
-        os.path.join(intermediate_base, 'cloud_wrapped'),
-        force=reinit)
-    self.working_wrapped_im = self.check_and_init_intermediate_dir(
-        os.path.join(intermediate_base, 'working_wrapped'),
-        sync_dir=self.cloud_wrapped_im,
-        force=reinit)
-
-  def check_and_init_intermediate_dir(self, directory, sync_dir=None,
-                                      force=False):
-    if force or os.path.isfile(directory):
-      os.path.remove(directory)
-    if not os.path.exists(directory):
-      os.makedirs(directory)
-      if sync_dir:
-        unison.sync_with_unison(sync_dir, directory, force_dir=sync_dir,
-                                times=True, unison_path=self.unison_path)
-    return directory
-
-  def apply_src_change_list(self, change_list, src, dest, is_compression):
-    for item in change_list:
-      print 'Process ' + str(item)
-      if item.target != unison.PathChangeStatus.TARGET_DEST:
-        continue
-
-      if (item.operation == unison.PathChangeStatus.OPERATION_UPDATE or
-          item.operation == unison.PathChangeStatus.OPERATION_CREATE):
-        src_path = os.path.join(src, item.path)
-        dest_path = os.path.join(dest, item.path)
-        if os.path.exists(dest_path):
-          if os.path.isfile(dest_path):
-            os.remove(dest_path)
-          else:
-            shutil.rmtree(dest_path)
-
-        if is_compression:
-          print 'Compress From ' + src_path + ' to ' + compression.get_compressed_filename(dest_path)
-          compression.compress_recursively(
-              item.path, src, dest,
-              password=self.password,
-              encryption_method=self.encryption_method)
-        else:
-          print 'Decompress From ' + src_path + ' to ' + compression.get_original_filename(dest_path)
-          compression.decompress_recursively(
-              item.path, src, dest,
-              password=self.password)
-
-      elif item.operation == unison.PathChangeStatus.OPERATION_DELETE:
-        dest_path = os.path.join(dest, item.path)
-        if os.path.isdir(dest_path):
-          shutil.rmtree(dest_path)
-        else:
-          os.remove(dest_path)
-
-  def _sync_prefer_src(self, src, dest):
-    print '*'*20 + 'step 1'
-    change_list = unison.sync_with_unison(
-        src, dest,
-        force_dir=None,
-        perms=unison.PERMS_NONE, times=False,
-        unison_path=self.unison_path)
-    print '*'*20 + 'step 2'
-    change_list.extend(unison.sync_with_unison(
-        src, dest,
-        force_dir=None,
-        perms=unison.PERMS_DEFAULT, times=True,
-        unison_path=self.unison_path))
-    print '*'*20 + 'step 3'
-    change_list.extend(unison.sync_with_unison(
-        src, dest,
-        force_dir=src,
-        perms=unison.PERMS_DEFAULT, times=True,
-        unison_path=self.unison_path))
-    return change_list
-
-  def _has_dest_change(self, change_list):
-    for item in change_list:
-      if item.target == unison.PathChangeStatus.TARGET_DEST:
-        return True
-    return False
-
-  def _handle_uncompressed_files(self, error_list, path):
-    for item in error_list:
-      print 'Compress ' + item + ' in ' + path
-      item_path = os.path.join(path, item)
-      if os.path.exists(item_path):
-        compression.compress_file(
-            item_path,
-            compression.get_compressed_filename(item_path),
-            password=self.password,
-            encryption_method=self.encryption_method)
-        os.remove(item_path)
-
-  def sync(self):
-    error_list = compression.test_decompress_recursively(
-        '', self.cloud_dir, password=self.password)
-    fatal_error = False
-    for item in error_list:
-      if compression.is_compressed_filename(item):
-        fatal_error = True
-        break
-    if fatal_error:
-      return
-
-    self._handle_uncompressed_files(error_list, self.cloud_dir)
-
-    print '*'*10 + 'Initial sync working'
-    working_change_list = unison.sync_with_unison(
-        self.working_dir, self.working_original_im,
-        force_dir=self.working_dir,
-        perms=unison.PERMS_DEFAULT, times=True,
-        unison_path=self.unison_path)
-
-    print '*'*10 + 'Initial sync cloud'
-    cloud_change_list = unison.sync_with_unison(
-        self.cloud_dir, self.cloud_wrapped_im,
-        force_dir=self.cloud_dir,
-        perms=unison.PERMS_DEFAULT, times=True,
-        unison_path=self.unison_path)
-
-    rnd = 1
-    while (self._has_dest_change(working_change_list) or
-        self._has_dest_change(cloud_change_list)):
-      print '*'*10 + 'Round ' + str(rnd)
-      rnd = rnd + 1
-      print '*'*10 + 'Apply to working'
-      self.apply_src_change_list(working_change_list, self.working_dir,
-                                 self.working_wrapped_im, True)
-      print '*'*10 + 'Apply to cloud'
-      self.apply_src_change_list(cloud_change_list, self.cloud_dir,
-                                 self.cloud_original_im, False)
-
-      print '*'*10 + 'Sync between working original and cloud original'
-      self._sync_prefer_src(self.working_original_im, self.cloud_original_im)
-      print '*'*10 + 'Sync between cloud wrapped and working wrapped'
-      self._sync_prefer_src(self.cloud_wrapped_im, self.working_wrapped_im)
-
-      # Redo the syncing again to see any difference
-      print '*'*10 + 'Next sync working'
-      working_change_list = self._sync_prefer_src(
-          self.working_dir, self.working_original_im)
-      print '*'*10 + 'Next sync cloud'
-      cloud_change_list = self._sync_prefer_src(
-          self.cloud_dir, self.cloud_wrapped_im)
 
 
-if __name__ == "__main__":
-  if len(sys.argv) < 4:
-    print 'usage: %s working cloud intermediate unison [password] [reinit]' % sys.argv[0]
-    sys.exit(0)
+_PROFILE_INFO_FILE='profile.ini'
+_PROFILE_DIR_FILE='profile_dir.csv'
+_PROFILE_TMP_DIR='tmp'
 
-  boxwrap = BoxWrap(sys.argv[1], sys.argv[2], sys.argv[3],
-                    reinit=len(sys.argv) > 6,
-                    unison_path=sys.argv[4],
-                    password=sys.argv[5] if len(sys.argv) > 5 else None)
-  boxwrap.sync()
+_PROFILE_INFO_SECTION='BoxWrap'
+
+_ENCRYPTION_CHOICES=collections.OrderedDict([
+    ('zipcrypto', compression.ENCRYPTION_ZIP_CRYPTO),
+    ('aes128', compression.ENCRYPTION_AES_128),
+    ('aes192', compression.ENCRYPTION_AES_192),
+    ('aes256', compression.ENCRYPTION_AES_256)])
+_COMPRESSION_CHOICES=collections.OrderedDict([
+    ('none', compression.COMPRESSION_LEVEL_NONE),
+    ('low', compression.COMPRESSION_LEVEL_LOW),
+    ('normal', compression.COMPRESSION_LEVEL_NORMAL),
+    ('high', compression.COMPRESSION_LEVEL_HIGH)])
+
+
+def _parse_args():
+  parser = argparse.ArgumentParser(
+      description='BoxWrap: store your files to cloud in a secure and compressed way.')
+  parser.add_argument(
+      'profile', metavar='profile', type=str,
+      help='Profile name to store sync/merge metadata in profile directory.')
+  parser.add_argument(
+      'working_dir', metavar='working_dir', type=str, nargs='?',
+      help='Optional. Local working directory with decrypted and uncompressed files. Not required if the profile already exists.')
+  parser.add_argument(
+      'wrap_dir', metavar='wrap_dir', type=str, nargs='?',
+      help='Optional. Wrap directory with encrypted and compressed files, usually pointing to one of your cloud subdirectory. Not required if the profile already exists.')
+  parser.add_argument(
+      '--profile_dir', metavar='profile_dir', type=str,
+      default=os.path.join('~', '.boxwrap'),
+      help='Profile directory to store sync/merge metadata.[default=%s]' % os.path.join('~', '.boxwrap'))
+  parser.add_argument(
+      '-p', dest='password', action='store_true',
+      help='Supply a password, please enter after promp.')
+  parser.add_argument(
+      '-l', dest='compression_level',
+      default='normal',
+      choices=_COMPRESSION_CHOICES.keys(),
+      help='Compression level to be speficied to 7-zip.[default=normal]')
+  parser.add_argument(
+      '-m', dest='encryption_method',
+      default='zipcrypto',
+      choices=_ENCRYPTION_CHOICES.keys(),
+      help='Encryption method to be speficied to 7-zip. Zipcrypto has most compatability but less secure.[default=zipcrypto]')
+  return parser.parse_args()
+
+
+def _require_working_and_wrap_dir(profile, working_dir, wrap_dir):
+  if not working_dir or not wrap_dir:
+    print >>sys.stderr, 'Error:'
+    if not working_dir:
+      print >>sys.stderr, (
+          'working_dir is required for new profile %s' % profile)
+    if not wrap_dir:
+      print >>sys.stderr, (
+          'wrap_dir is required for new profile %s' % profile)
+    sys.exit()
+
+
+def _require_working_and_wrap_dir_exists(profile, working_dir, wrap_dir):
+  if not os.path.isdir(working_dir) or not os.path.isdir(wrap_dir):
+    print >>sys.stderr, 'Error:'
+    if not os.path.isdir(working_dir):
+      print >>sys.stderr, (
+          'working_dir %s should be an existing directory for profile %s' %
+          (working_dir, profile))
+    if not os.path.isdir(wrap_dir):
+      print >>sys.stderr, (
+          'wrap_dir %s should be an existing directory for profile %s' %
+          (wrap_dir, profile))
+    sys.exit()
+
+
+def _validate_args_and_update_profile(args):
+  args = _parse_args()
+  profile_new = False
+  profile_base = os.path.abspath(os.path.expanduser(args.profile_dir))
+
+  profile = args.profile
+  profile_dir = os.path.join(profile_base, profile)
+  working_dir = args.working_dir
+  password = args.password
+  encryption_method = args.encryption_method
+  compression_level = args.compression_level
+
+  wrap_dir = args.wrap_dir
+  if os.path.isfile(profile_dir):
+    print >>sys.stderr, 'Error:'
+    print >>sys.stderr, (
+        'Destination profile location %s is not a directory' % profile_dir)
+    sys.exit()
+  if not os.path.exists(profile_dir):
+    profile_new = True
+    _require_working_and_wrap_dir(profile, working_dir, wrap_dir)
+    try:
+      os.makedirs(profile_dir)
+    except:
+      print >>sys.stderr, 'Error:'
+      print >>sys.stderr, ('Cannot create directory for profile %s at %s' %
+          (profile, profile_dir))
+      sys.exit()
+  if os.path.isdir(os.path.join(profile_dir, _PROFILE_INFO_FILE)):
+    print >>sys.stderr, 'Error:'
+    print >>sys.stderr, ('Destination profile info file %s is not a file' %
+        os.path.join(profile_dir, _PROFILE_INFO_FILE))
+    sys.exit()
+  if not os.path.exists(os.path.join(profile_dir, _PROFILE_INFO_FILE)):
+    print >>sys.stderr, 'Create new profile %s' % profile
+    profile_new = True
+    _require_working_and_wrap_dir(profile, working_dir, wrap_dir)
+  rewrite_profile_info = True
+  if not profile_new:
+    print >>sys.stderr, 'Load existing profile %s' % profile
+    print >>sys.stderr, 'Note that the existing profile fields will be used instead of the supplied arguments.'
+    # Normally we don't rewrite profile info unless there are some missing
+    # fields.
+    rewrite_profile_info = False
+    profile_info = ConfigParser.ConfigParser()
+    profile_info.read(os.path.join(profile_dir, _PROFILE_INFO_FILE))
+    if profile_info.has_option(_PROFILE_INFO_SECTION, 'working_dir'):
+      working_dir = profile_info.get(_PROFILE_INFO_SECTION, 'working_dir')
+    else:
+      rewrite_profile_info = True
+    if profile_info.has_option(_PROFILE_INFO_SECTION, 'wrap_dir'):
+      wrap_dir = profile_info.get(_PROFILE_INFO_SECTION, 'wrap_dir')
+    else:
+      rewrite_profile_info = True
+    if profile_info.has_option(_PROFILE_INFO_SECTION, 'password'):
+      password = profile_info.getboolean(_PROFILE_INFO_SECTION, 'password')
+    else:
+      rewrite_profile_info = True
+    if profile_info.has_option(_PROFILE_INFO_SECTION, 'encryption_method'):
+      encryption_method2 = profile_info.get(_PROFILE_INFO_SECTION,
+                                            'encryption_method')
+      if encryption_method2 in _ENCRYPTION_CHOICES:
+        encryption_method = encryption_method2
+      else:
+        rewrite_profile_info = True
+    else:
+      rewrite_profile_info = True
+    if profile_info.has_option(_PROFILE_INFO_SECTION, 'compression_level'):
+      compression_level2 = profile_info.get(_PROFILE_INFO_SECTION,
+                                            'compression_level')
+      if compression_level2 in _COMPRESSION_CHOICES:
+        compression_level = compression_level2
+      else:
+        rewrite_profile_info = True
+    else:
+      rewrite_profile_info = True
+
+  working_dir = os.path.abspath(working_dir)
+  wrap_dir = os.path.abspath(wrap_dir)
+  _require_working_and_wrap_dir_exists(profile, working_dir, wrap_dir)
+
+  if rewrite_profile_info:
+    print >>sys.stderr, 'Save to profile info file: %s' % (
+        os.path.join(profile_dir, _PROFILE_INFO_FILE))
+    new_profile_info = ConfigParser.RawConfigParser()
+    new_profile_info.add_section(_PROFILE_INFO_SECTION)
+    new_profile_info.set(_PROFILE_INFO_SECTION, 'profile', profile)
+    new_profile_info.set(
+        _PROFILE_INFO_SECTION, 'working_dir', working_dir)
+    new_profile_info.set(_PROFILE_INFO_SECTION, 'wrap_dir', wrap_dir)
+    new_profile_info.set(_PROFILE_INFO_SECTION, 'password', password)
+    new_profile_info.set(
+        _PROFILE_INFO_SECTION, 'encryption_method', encryption_method)
+    new_profile_info.set(
+        _PROFILE_INFO_SECTION, 'compression_level', compression_level)
+    with open(os.path.join(profile_dir, _PROFILE_INFO_FILE), 'wb') as f:
+        new_profile_info.write(f)
+
+  if os.path.isfile(os.path.join(profile_dir, _PROFILE_TMP_DIR)):
+    os.remove(os.path.join(profile_dir, _PROFILE_TMP_DIR))
+  if not os.path.exists(os.path.join(profile_dir, _PROFILE_TMP_DIR)):
+    os.makedirs(os.path.join(profile_dir, _PROFILE_TMP_DIR))
+  return {
+      'profile': profile,
+      'profile_base': profile_base,
+      'profile_dir': profile_dir,
+      'working_dir': working_dir,
+      'wrap_dir': wrap_dir,
+      'password': password,
+      'encryption_method': encryption_method,
+      'compression_level': compression_level}
+
+
+def _boxwrap():
+  args = _validate_args_and_update_profile(_parse_args())
+  print args
+
+if __name__ == '__main__':
+  _boxwrap()
 
