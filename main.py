@@ -15,13 +15,15 @@ class BoxWrap:
 
   def __init__(self, working_dir, cloud_dir, tmp_dir, file_info_csv_file,
                reinit=False, password=None,
-               encryption_method=compression.ENCRYPTION_AES_256):
+               compression_level=compression.COMPRESSION_LEVEL_NORMAL,
+               encryption_method=compression.ENCRYPTION_ZIP_CRYPTO):
     self.working_dir = working_dir
     self.cloud_dir = cloud_dir
     self.tmp_dir = tmp_dir
     self.file_info_csv_file = file_info_csv_file
     self.password = password
     self.encryption_method = encryption_method
+    self.compression_level = compression_level
     self.compression_key = lambda x: util.path_for_sorting(
         compression.get_original_filename(x.path))
 
@@ -110,7 +112,8 @@ class BoxWrap:
                                            compressed_tmp_filename)
         compression.compress_file(c.cur_info.tmp_file, compressed_tmp_file,
                                   password=self.password,
-                                  encryption_method=self.encryption_method)
+                                  encryption_method=self.encryption_method,
+                                  compression_level=self.compression_level)
         tmp_fi = file_info.load_file_info(compressed_tmp_file)
         compressed_file_info = file_info.FileInfo(
             # TODO: check conflict of compressed filename?
