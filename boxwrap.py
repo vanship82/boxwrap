@@ -4,6 +4,7 @@ import compression
 import ConfigParser
 import getpass
 import os
+import shutil
 import sys
 
 import main
@@ -205,14 +206,25 @@ def _boxwrap():
   if args['password']:
     password = getpass.getpass(
         'Please enter password for encrypting/decrypting wrap_dir:')
+  profile_dir_info_file = os.path.join(
+      args['profile_dir'], _PROFILE_DIR_INFO_FILE)
+  if os.path.isdir(profile_dir_info_file):
+    shutil.rmtree(profile_dir_info_file)
+  if os.path.isfile(profile_dir_info_file):
+    dir_info = file_info.load_dir_info_from_csv(
+        open(profile_dir_info_file), '.')
+  else:
+    dir_info = file_info.empty_dir_info('.')
   boxwrap = main.BoxWrap(
       args['working_dir'], args['wrap_dir'],
       os.path.join(args['profile_dir'], _PROFILE_TMP_DIR),
-      os.path.join(args['profile_dir'], _PROFILE_DIR_INFO_FILE),
+      profile_dir_info_file,
       password=password,
       encryption_method=_ENCRYPTION_CHOICES[args['encryption_method']],
       compression_level=_COMPRESSION_CHOICES[args['compression_level']])
-  boxwrap.sync(file_info.empty_dir_info('.'), debug=True)
+  working_di, wrap_di = boxwrap.sync(dir_info, debug=True)
+  with open(profile_dir_info_file, 'wb') as f:
+    working_di.write_to_csv(f)
 
 
 if __name__ == '__main__':
