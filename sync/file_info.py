@@ -48,16 +48,23 @@ class FileInfo:
   def path_for_sorting(self):
     return util.path_for_sorting(self.path)
 
+  def to_array(self, show_compressed_level=0):
+    data = [
+        self.path,
+        '1' if self.is_dir else '0',
+        str(self.mode),
+        str(self.size) if self.size is not None else '-1',
+        str(self.last_modified_time),
+        str(self.file_hash) if self.file_hash else '']
+    if self.compressed_file_info and show_compressed_level > 0:
+      data.extend(self.compressed_file_info.to_array(
+          show_compressed_level=show_compressed_level - 1))
+    return data
+
   def to_csv(self):
     output = cStringIO.StringIO()
     writer = i18n.UnicodeWriter(output)
-    writer.writerow([
-      self.path,
-      '1' if self.is_dir else '0',
-      str(self.mode),
-      str(self.size) if self.size is not None else '-1',
-      str(self.last_modified_time),
-      str(self.file_hash) if self.file_hash else ''])
+    writer.writerow(self.to_array(show_compressed_level=1))
     return output.getvalue().strip('\r\n')
 
   def is_modified(self, other, force_check_content=False):
@@ -139,13 +146,16 @@ def load_file_info(path, calculate_hash=False):
 
 
 def load_from_csv_row(row):
+  if len(row) < 6:
+    return None
   return FileInfo(
       row[0],
       row[1] == '1',
       int(row[2]),
       int(row[3]) if int(row[3]) >= 0 else None,
       float(row[4]),
-      row[5] or None)
+      row[5] or None,
+      compressed_file_info=load_from_csv_row(row[6:]))
 
 
 # A sorted list of file info in the directory

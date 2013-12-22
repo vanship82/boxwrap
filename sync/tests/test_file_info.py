@@ -52,6 +52,29 @@ class TestFileInfo(unittest.TestCase):
       self._assert_file_info_list_valid_and_equal(
           file_info_list[i], file_info_list_from_csv[i])
 
+  def test_csv_read_write_with_compressed_file_info(self):
+    compressed_file_info = file_info.FileInfo(
+        './test.boxwrap.zip', False, 0100644, 100, 1234567890,
+        file_hash='adfavdasdsa')
+    test_file_info = file_info.FileInfo(
+        './test.zip', False, 0100664, 200, 1234567895,
+        file_hash='123kasdasd', compressed_file_info=compressed_file_info)
+    dir_info = file_info.DirInfo('.',
+        [file_info.FileInfo('.', True, 040775, None, 1234567890)],
+        {'.': file_info.DirInfo('.', [test_file_info], {})})
+    output = cStringIO.StringIO()
+    dir_info.write_to_csv(output)
+    dir_info_from_csv = file_info.load_dir_info_from_csv(
+        cStringIO.StringIO(output.getvalue()), '.')
+
+    file_info_list = [x for x in dir_info.flat_file_info_list()]
+    file_info_list_from_csv = [
+        x for x in dir_info_from_csv.flat_file_info_list()]
+    self.assertEqual(len(file_info_list), len(file_info_list_from_csv))
+    for i in range(len(file_info_list)):
+      self._assert_file_info_list_valid_and_equal(
+          file_info_list[i], file_info_list_from_csv[i])
+
   def _assert_file_info_list_valid_and_equal(self, e1, e2):
     self.assertEqual(e1.path, e2.path)
     self.assertEqual(e1.is_dir, e2.is_dir)
@@ -68,4 +91,10 @@ class TestFileInfo(unittest.TestCase):
 
     self.assertTrue(e1.last_modified_time > 0)
     self.assertTrue(e2.last_modified_time > 0)
+    self.assertEquals(not e1.compressed_file_info,
+                      not e2.compressed_file_info)
+    if e1.compressed_file_info:
+      self._assert_file_info_list_valid_and_equal(
+          e1.compressed_file_info,
+          e2.compressed_file_info)
 
