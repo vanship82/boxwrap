@@ -1,4 +1,5 @@
 import copy
+import getpass
 import os
 import shutil
 import sys
@@ -67,7 +68,10 @@ class BoxWrap:
     cloud_dc = change_entry.get_dir_changes(cloud_cur_di, cloud_old_di,
                                             root_dir=self.cloud_dir,
                                             tmp_dir=self.tmp_dir)
-    cloud_dc = self._generate_original_dir_changes(cloud_dc)
+    cloud_dc, invalid_archives_dc = self._generate_original_dir_changes(
+        cloud_dc)
+    self._print_changes('************ invalid_archives_dc',
+                        invalid_archives_dc)
     if debug:
       print '============== step 3: %s' % (time.time() - tstart)
 
@@ -103,6 +107,14 @@ class BoxWrap:
     os.chdir(cwd)
     return [working_di, cloud_di]
 
+  def _prompt_password(self):
+    if self.password:
+      self.password = getpass.getpass(
+          'Password is incorrect, please reenter password for wrap_dir:')
+    else:
+      self.password = getpass.getpass(
+          'Please enter password for encrypting/decrypting wrap_dir:')
+
   def _generate_compressed_dir_changes(self, dir_changes):
     dir_changes = copy.deepcopy(dir_changes)
     for c in dir_changes.flat_changes():
@@ -124,8 +136,14 @@ class BoxWrap:
             compressed_file_info, compressed_tmp_filename, self.tmp_dir)
     return dir_changes
 
+  # Return (dir_changes, invalid_archive_dc)
   def _generate_original_dir_changes(self, dir_changes,
-                                     parent_dir_changes=None):
+                                     parent_dir_changes=None,
+                                     parent_invalid_archive_dc=None):
+    invalid_archive_dc = change_entry.DirChanges(
+        dir_changes.base_dir(),
+        change_entry.CONTENT_STATUS_MODIFIED,
+        parent_dir_changes=parent_invalid_archive_dc)
     new_dir_changes = change_entry.DirChanges(
         dir_changes.base_dir(), dir_changes.dir_status(),
         parent_dir_changes=parent_dir_changes)
@@ -145,8 +163,31 @@ class BoxWrap:
           original_tmp_filename = change_entry.generate_tmp_file(self.tmp_dir)
           original_tmp_file = os.path.join(self.tmp_dir,
                                            original_tmp_filename)
-          compression.decompress_file(c.cur_info.tmp_file, original_tmp_file,
-                                      password=self.password)
+          if not compression.is_compressed_filename(c.cur_info.path):
+            invalid_archive_dc.add_change(change_entry.ChangeEntry(
+                path, c.cur_info, c.old_info, c.content_status,
+                parent_dir_changes=invalid_archive_dc))
+            continue
+          need_retry = True
+          next_change = False
+          while need_retry:
+            need_retry = False
+            try:
+              compression.decompress_file(c.cur_info.tmp_file, original_tmp_file,
+                                          password=self.password)
+            except compression.CompressionWrongPassword:
+              self._prompt_password()
+              need_retry = True
+            except compression.CompressionInvalidArchive:
+              invalid_archive_dc.add_change(change_entry.ChangeEntry(
+                  # Not using path because it is not a valid archive
+                  c.path, c.cur_info, c.old_info, c.content_status,
+                  parent_dir_changes=invalid_archive_dc))
+              next_change = True
+
+          if next_change:
+            continue
+
           tmp_fi = file_info.load_file_info(original_tmp_file)
           compressed_file_info = copy.deepcopy(c.cur_info)
           compressed_file_info.compressed_file_info = None
@@ -162,14 +203,27 @@ class BoxWrap:
         else:
           cur_info = old_info
 
+      sub_dir_changes = None
+      sub_invalid_archive_dc = None
+      if c.dir_changes:
+        sub_dir_changes, sub_invalid_archive_dc = (
+            self._generate_original_dir_changes(
+                c.dir_changes,
+                parent_dir_changes=new_dir_changes,
+                parent_invalid_archive_dc=invalid_archive_dc))
+        if sub_invalid_archive_dc:
+          invalid_archive_dc.add_change(change_entry.ChangeEntry(
+              path, cur_info, old_info, c.content_status,
+              dir_changes=sub_invalid_archive_dc,
+              parent_dir_changes=invalid_archive_dc))
       new_dir_changes.add_change(change_entry.ChangeEntry(
-        path, cur_info, old_info, c.content_status,
-        dir_changes=(self._generate_original_dir_changes(
-            c.dir_changes, parent_dir_changes=new_dir_changes)
-            if c.dir_changes else None),
-        parent_dir_changes=new_dir_changes))
+          path, cur_info, old_info, c.content_status,
+          dir_changes=sub_dir_changes,
+          parent_dir_changes=new_dir_changes))
 
-    return new_dir_changes
+    if not invalid_archive_dc.changes():
+      invalid_archive_dc = None
+    return new_dir_changes, invalid_archive_dc
 
   def _extract_compressed_dir_changes(self, dir_changes,
                                       parent_dir_changes=None):
