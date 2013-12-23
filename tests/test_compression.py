@@ -106,7 +106,16 @@ class TestCompressionCases(unittest.TestCase):
         encryption_method=compression.ENCRYPTION_AES_256)
     # Wrong password
     self.assertRaises(
-        compression.CompressionFatalError,
+        compression.CompressionWrongPassword,
         compression.decompress_recursively,
         _CASE_PATH, _CASE_DEST, _CASE_OUT,
         password='1234567')
+
+  def test_decopmression_invalid_archive(self):
+    # Invalid archive because we decompress src directly.
+    self.assertRaises(
+        compression.CompressionInvalidArchive,
+        compression.decompress_recursively,
+        _CASE_PATH, _CASE_SRC, _CASE_OUT,
+        password='1234567')
+

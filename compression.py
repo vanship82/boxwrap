@@ -70,6 +70,14 @@ class CompressionUserInterrupt(CompressionException):
   pass
 
 
+class CompressionWrongPassword(CompressionException):
+  pass
+
+
+class CompressionInvalidArchive(CompressionException):
+  pass
+
+
 RETURN_CODE_EXCEPTION_MAP = {
     1: CompressionWarning,
     2: CompressionFatalError,
@@ -189,10 +197,22 @@ def decompress_file(src_file, dest_file,
   params.append(src_file)
   test_params.append(src_file)
 
+  test_process = subprocess.Popen(test_params, shell=False,
+                                  stderr=subprocess.PIPE,
+                                  stdout=subprocess.PIPE)
+  test_output, test_output_error = test_process.communicate()
+  if test_process.returncode != 0:
+    returncode = test_process.returncode
+    if 'Can not open file as archive' in test_output:
+      raise CompressionInvalidArchive('', returncode)
+    elif 'Wrong password?' in test_output:
+      raise CompressionWrongPassword('', returncode)
+    elif RETURN_CODE_EXCEPTION_MAP.has_key(returncode):
+      raise RETURN_CODE_EXCEPTION_MAP[returncode]('', returncode)
+    else:
+      raise CompressionException('', returncode)
+
   try:
-    subprocess.check_call(test_params, shell=False,
-                          stderr=open('/dev/null'),
-                          stdout=open('/dev/null'))
     dest_f = open(dest_file, 'w')
     subprocess.check_call(params, shell=False, stdout=dest_f,
                           stderr=open('/dev/null'))
@@ -275,3 +295,4 @@ def test_decompress_recursively(path, src_base_path, password=None):
           error_list.append(os.path.join(rel_path, f))
 
   return error_list
+
