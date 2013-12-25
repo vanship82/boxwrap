@@ -307,8 +307,7 @@ class TestMergeDirs(unittest.TestCase):
                               os.path.join(_TEST_CASE_DIR_REL,
                                            _TEST_CASE_FILE1))
 
-    # NO_CHANGE indicates that the base dir should not be created.
-    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+    self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
                               self.dc_conflict, _TEST_CASE_DIR_REL)
     self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
                               self.dc_conflict,
