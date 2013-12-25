@@ -70,8 +70,9 @@ class BoxWrap:
                                             tmp_dir=self.tmp_dir)
     cloud_dc, invalid_archives_dc = self._generate_original_dir_changes(
         cloud_dc)
-    self._print_changes('************ invalid_archives_dc',
-                        invalid_archives_dc)
+    if invalid_archives_dc:
+        self._print_changes('************ invalid_archives_dc',
+                            invalid_archives_dc)
     if debug:
       print '============== step 3: %s' % (time.time() - tstart)
 
