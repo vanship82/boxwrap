@@ -68,11 +68,20 @@ class BoxWrap:
     cloud_dc = change_entry.get_dir_changes(cloud_cur_di, cloud_old_di,
                                             root_dir=self.cloud_dir,
                                             tmp_dir=self.tmp_dir)
-    cloud_dc, invalid_archives_dc = self._generate_original_dir_changes(
-        cloud_dc)
-    if invalid_archives_dc:
+    cloud_dc_result = self._generate_original_dir_changes(cloud_dc)
+    cloud_dc = cloud_dc_result[0]
+    invalid_archives_dc_working = cloud_dc_result[1]
+    invalid_archives_dc_cloud = cloud_dc_result[2]
+    if invalid_archives_dc_working:
+      if debug:
         self._print_changes('************ invalid_archives_dc',
-                            invalid_archives_dc)
+                            invalid_archives_dc_working)
+      # Apply invalid_archives_dc to working dir because they are not
+      # compressed. These files will be compressed and sync after next sync.
+      change_entry.apply_dir_changes_to_dir(self.working_dir,
+                                            invalid_archives_dc_working)
+      change_entry.apply_dir_changes_to_dir(self.cloud_dir,
+                                            invalid_archives_dc_cloud)
     if debug:
       print '============== step 3: %s' % (time.time() - tstart)
 
@@ -137,14 +146,19 @@ class BoxWrap:
             compressed_file_info, compressed_tmp_filename, self.tmp_dir)
     return dir_changes
 
-  # Return (dir_changes, invalid_archive_dc)
+  # Return (dir_changes, invalid_archive_dc_working, invalid_archive_dc_cloud)
   def _generate_original_dir_changes(self, dir_changes,
                                      parent_dir_changes=None,
-                                     parent_invalid_archive_dc=None):
-    invalid_archive_dc = change_entry.DirChanges(
+                                     parent_invalid_archive_dc_working=None,
+                                     parent_invalid_archive_dc_cloud=None):
+    invalid_archive_dc_working = change_entry.DirChanges(
         dir_changes.base_dir(),
         change_entry.CONTENT_STATUS_MODIFIED,
-        parent_dir_changes=parent_invalid_archive_dc)
+        parent_dir_changes=parent_invalid_archive_dc_working)
+    invalid_archive_dc_cloud = change_entry.DirChanges(
+        dir_changes.base_dir(),
+        change_entry.CONTENT_STATUS_MODIFIED,
+        parent_dir_changes=parent_invalid_archive_dc_cloud)
     new_dir_changes = change_entry.DirChanges(
         dir_changes.base_dir(), dir_changes.dir_status(),
         parent_dir_changes=parent_dir_changes)
@@ -165,9 +179,14 @@ class BoxWrap:
           original_tmp_file = os.path.join(self.tmp_dir,
                                            original_tmp_filename)
           if not compression.is_compressed_filename(c.cur_info.path):
-            invalid_archive_dc.add_change(change_entry.ChangeEntry(
+            invalid_archive_dc_working.add_change(change_entry.ChangeEntry(
                 path, c.cur_info, c.old_info, c.content_status,
-                parent_dir_changes=invalid_archive_dc))
+                parent_dir_changes=invalid_archive_dc_working))
+            invalid_archive_dc_cloud.add_change(change_entry.ChangeEntry(
+                path, None, c.cur_info,
+                # Remove the file directly because we move it to working dir
+                change_entry.CONTENT_STATUS_DELETED,
+                parent_dir_changes=invalid_archive_dc_cloud))
             continue
           need_retry = True
           next_change = False
@@ -180,10 +199,16 @@ class BoxWrap:
               self._prompt_password()
               need_retry = True
             except compression.CompressionInvalidArchive:
-              invalid_archive_dc.add_change(change_entry.ChangeEntry(
+              invalid_archive_dc_working.add_change(change_entry.ChangeEntry(
                   # Not using path because it is not a valid archive
                   c.path, c.cur_info, c.old_info, c.content_status,
-                  parent_dir_changes=invalid_archive_dc))
+                  parent_dir_changes=invalid_archive_dc_working))
+              invalid_archive_dc_cloud.add_change(change_entry.ChangeEntry(
+                  # Not using path because it is not a valid archive
+                  c.path, None, c.cur_info,
+                  # Remove the file directly because we move it to working dir
+                  change_entry.CONTENT_STATUS_DELETED,
+                  parent_dir_changes=invalid_archive_dc_cloud))
               next_change = True
 
           if next_change:
@@ -205,26 +230,35 @@ class BoxWrap:
           cur_info = old_info
 
       sub_dir_changes = None
-      sub_invalid_archive_dc = None
+      sub_invalid_archive_dc_working = None
       if c.dir_changes:
-        sub_dir_changes, sub_invalid_archive_dc = (
-            self._generate_original_dir_changes(
+        result = self._generate_original_dir_changes(
                 c.dir_changes,
                 parent_dir_changes=new_dir_changes,
-                parent_invalid_archive_dc=invalid_archive_dc))
-        if sub_invalid_archive_dc:
-          invalid_archive_dc.add_change(change_entry.ChangeEntry(
+                parent_invalid_archive_dc_working=invalid_archive_dc_working)
+        sub_dir_changes = result[0]
+        sub_invalid_archive_dc_working = result[1]
+        sub_invalid_archive_dc_cloud = result[2]
+        if sub_invalid_archive_dc_working:
+          invalid_archive_dc_working.add_change(change_entry.ChangeEntry(
               path, cur_info, old_info, c.content_status,
-              dir_changes=sub_invalid_archive_dc,
-              parent_dir_changes=invalid_archive_dc))
+              dir_changes=sub_invalid_archive_dc_working,
+              parent_dir_changes=invalid_archive_dc_working))
+        if sub_invalid_archive_dc_cloud:
+          invalid_archive_dc_cloud.add_change(change_entry.ChangeEntry(
+              path, cur_info, old_info, c.content_status,
+              dir_changes=sub_invalid_archive_dc_cloud,
+              parent_dir_changes=invalid_archive_dc_cloud))
       new_dir_changes.add_change(change_entry.ChangeEntry(
           path, cur_info, old_info, c.content_status,
           dir_changes=sub_dir_changes,
           parent_dir_changes=new_dir_changes))
 
-    if not invalid_archive_dc.changes():
-      invalid_archive_dc = None
-    return new_dir_changes, invalid_archive_dc
+    if not invalid_archive_dc_working.changes():
+      invalid_archive_dc_working = None
+    if not invalid_archive_dc_cloud.changes():
+      invalid_archive_dc_cloud = None
+    return new_dir_changes, invalid_archive_dc_working, invalid_archive_dc_cloud
 
   def _extract_compressed_dir_changes(self, dir_changes,
                                       parent_dir_changes=None):

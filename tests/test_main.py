@@ -206,3 +206,35 @@ class TestBoxWrap(unittest.TestCase):
         'test1_1\n',
         os.path.join(_TEST_WORKING, 'test_new (conflict copy 1).txt'))
 
+  def testInvalidArchiveNotCompressedFilename(self):
+    # Add new file not compressed and without compressed filename
+    f = open(os.path.join(_TEST_CLOUD, 'test_new.txt'), 'w')
+    f.write('test_new')
+    f.close()
+
+    self.working_di, self.cloud_di = self.under_test.sync(self.working_di)
+
+    dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
+    self._assertDirChanges(dc, debug=True)
+
+    self._assertFileContent(
+        'test_new', os.path.join(_TEST_WORKING, 'test_new.txt'))
+    self.assertFalse(os.path.exists(os.path.join(_TEST_CLOUD, 'test_new.txt')))
+
+  def testInvalidArchive(self):
+    # Add new file with compressed filename but not a valid compressed file
+    compressed_filename = compression.get_compressed_filename('test_new.txt')
+    f = open(os.path.join(_TEST_CLOUD, compressed_filename), 'w')
+    f.write('test_new')
+    f.close()
+
+    self.working_di, self.cloud_di = self.under_test.sync(self.working_di)
+
+    dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
+    self._assertDirChanges(dc, debug=True)
+
+    self._assertFileContent('test_new',
+                            os.path.join(_TEST_WORKING, compressed_filename))
+    self.assertFalse(
+        os.path.exists(os.path.join(_TEST_CLOUD, compressed_filename)))
+
