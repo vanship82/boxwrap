@@ -3,6 +3,7 @@ import collections
 import compression
 import ConfigParser
 import getpass
+import hashlib
 import os
 import shutil
 import sys
@@ -46,8 +47,11 @@ def _parse_args():
       default=os.path.join('~', '.boxwrap'),
       help='Profile directory to store sync/merge metadata.[default=%s]' % os.path.join('~', '.boxwrap'))
   parser.add_argument(
-      '-p', dest='password', action='store_true',
+      '-p', dest='require_password', action='store_true',
       help='Supply a password, please enter after promp.')
+  parser.add_argument(
+      '--force_new_password', dest='force_new_password', action='store_true',
+      help='Force using new password regardless to the hash saved in profile.')
   parser.add_argument(
       '-l', dest='compression_level',
       default='normal',
@@ -88,14 +92,16 @@ def _require_working_and_wrap_dir_exists(profile, working_dir, wrap_dir):
 
 
 def _validate_args_and_update_profile(args):
-  args = _parse_args()
   profile_new = False
   profile_base = os.path.abspath(os.path.expanduser(args.profile_dir))
 
   profile = args.profile
   profile_dir = os.path.join(profile_base, profile)
   working_dir = args.working_dir
-  password = args.password
+  require_password = args.require_password
+  password_hash = None
+  password = None
+  force_new_password = args.force_new_password
   encryption_method = args.encryption_method
   compression_level = args.compression_level
 
@@ -141,8 +147,13 @@ def _validate_args_and_update_profile(args):
       wrap_dir = profile_info.get(_PROFILE_INFO_SECTION, 'wrap_dir')
     else:
       rewrite_profile_info = True
-    if profile_info.has_option(_PROFILE_INFO_SECTION, 'password'):
-      password = profile_info.getboolean(_PROFILE_INFO_SECTION, 'password')
+    if profile_info.has_option(_PROFILE_INFO_SECTION, 'require_password'):
+      require_password = profile_info.getboolean(_PROFILE_INFO_SECTION,
+                                                 'require_password')
+      if require_password:
+        if profile_info.has_option(_PROFILE_INFO_SECTION, 'password_hash'):
+          password_hash = profile_info.get(_PROFILE_INFO_SECTION,
+                                           'password_hash')
     else:
       rewrite_profile_info = True
     if profile_info.has_option(_PROFILE_INFO_SECTION, 'encryption_method'):
@@ -168,6 +179,27 @@ def _validate_args_and_update_profile(args):
   wrap_dir = os.path.abspath(wrap_dir)
   _require_working_and_wrap_dir_exists(profile, working_dir, wrap_dir)
 
+  if require_password or force_new_password:
+    require_password = True
+    while True:
+      password = getpass.getpass(
+          'Please enter password for encrypting/decrypting wrap_dir:',
+          stream=sys.stderr)
+      if force_new_password or not password_hash:
+        if force_new_password:
+          print >>sys.stderr, 'Warning: force new password flag is set, you may get an inconsistent encryption password in wrap_dir.'
+        confirm_password = getpass.getpass(
+            'Please confirm your password:', stream=sys.stderr)
+        if confirm_password != password:
+          print >>sys.stderr, 'Password confirmation does not match, please re-enter.'
+          continue
+        rewrite_profile_info = True
+      else:
+        if _calculate_password_hash(password, profile) != password_hash:
+          print >>sys.stderr, 'Password does not match to profile, please re-enter.'
+          continue
+      break
+
   if rewrite_profile_info:
     print >>sys.stderr, 'Save to profile info file: %s' % (
         os.path.join(profile_dir, _PROFILE_INFO_FILE))
@@ -177,7 +209,11 @@ def _validate_args_and_update_profile(args):
     new_profile_info.set(
         _PROFILE_INFO_SECTION, 'working_dir', working_dir)
     new_profile_info.set(_PROFILE_INFO_SECTION, 'wrap_dir', wrap_dir)
-    new_profile_info.set(_PROFILE_INFO_SECTION, 'password', password)
+    new_profile_info.set(_PROFILE_INFO_SECTION, 'require_password',
+                         require_password)
+    if require_password:
+      new_profile_info.set(_PROFILE_INFO_SECTION, 'password_hash',
+                           _calculate_password_hash(password, profile))
     new_profile_info.set(
         _PROFILE_INFO_SECTION, 'encryption_method', encryption_method)
     new_profile_info.set(
@@ -200,12 +236,15 @@ def _validate_args_and_update_profile(args):
       'compression_level': compression_level}
 
 
+def _calculate_password_hash(password, profile):
+  sha256 = hashlib.sha256()
+  sha256.update(profile + compression.PROGRAM_COMMON + password)
+  return sha256.hexdigest()
+
+
 def _boxwrap():
   args = _validate_args_and_update_profile(_parse_args())
-  password = None
-  if args['password']:
-    password = getpass.getpass(
-        'Please enter password for encrypting/decrypting wrap_dir:')
+  password = args['password']
   profile_dir_info_file = os.path.join(
       args['profile_dir'], _PROFILE_DIR_INFO_FILE)
   if os.path.isdir(profile_dir_info_file):
