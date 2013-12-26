@@ -36,6 +36,5 @@ nosetests.xml
 .*.swp
 
 # test cases
-tests/cases
 test_tmp
 
