@@ -23,6 +23,12 @@ def _get_binary():
       binary = '7za_32'
     elif arch[0] == '64bit':
       binary = '7za_64'
+  elif arch[1] == 'WindowsPE':
+    # Windows
+    if arch[0] == '32bit':
+      binary = os.path.join('7z_win32', '7z.exe')
+    elif arch[0] == '64bit':
+      binary = os.path.join('7z_win64', '7z.exe')
   if not binary:
     raise Exception('Unable to identity 7-zip binary from platform.')
   return binary
@@ -136,8 +142,8 @@ def compress_file(src_file, dest_file,
     cwd = os.path.abspath(os.getcwd())
     os.chdir(os.path.abspath(os.path.dirname(src_file)))
     subprocess.check_call(params, shell=False,
-                          stderr=open('/dev/null'),
-                          stdout=open('/dev/null'))
+                          stderr=open(os.devnull),
+                          stdout=open(os.devnull))
     # Hack: 7za always add .zip subfix, remove it
     if (not abs_dest_file.endswith('.zip') and
         os.path.exists(abs_dest_file + '.zip')):
@@ -215,7 +221,7 @@ def decompress_file(src_file, dest_file,
   try:
     dest_f = open(dest_file, 'w')
     subprocess.check_call(params, shell=False, stdout=dest_f,
-                          stderr=open('/dev/null'))
+                          stderr=open(os.devnull))
     dest_f.close()
     shutil.copystat(src_file, dest_file)
     return dest_file
@@ -261,8 +267,8 @@ def test_decompress_file(src_file, password=None):
 
   try:
     subprocess.check_call(test_params, shell=False,
-                          stderr=open('/dev/null'),
-                          stdout=open('/dev/null'))
+                          stderr=open(os.devnull),
+                          stdout=open(os.devnull))
     return True
   except subprocess.CalledProcessError as e:
     if RETURN_CODE_EXCEPTION_MAP.has_key(e.returncode):
