@@ -117,14 +117,6 @@ class BoxWrap:
     os.chdir(cwd)
     return [working_di, cloud_di]
 
-  def _prompt_password(self):
-    if self.password:
-      self.password = getpass.getpass(
-          'Password is incorrect, please reenter password for wrap_dir:')
-    else:
-      self.password = getpass.getpass(
-          'Please enter password for encrypting/decrypting wrap_dir:')
-
   def _generate_compressed_dir_changes(self, dir_changes):
     dir_changes = copy.deepcopy(dir_changes)
     for c in dir_changes.flat_changes():
@@ -188,30 +180,20 @@ class BoxWrap:
                 change_entry.CONTENT_STATUS_DELETED,
                 parent_dir_changes=invalid_archive_dc_cloud))
             continue
-          need_retry = True
-          next_change = False
-          while need_retry:
-            need_retry = False
-            try:
-              compression.decompress_file(c.cur_info.tmp_file, original_tmp_file,
-                                          password=self.password)
-            except compression.CompressionWrongPassword:
-              self._prompt_password()
-              need_retry = True
-            except compression.CompressionInvalidArchive:
-              invalid_archive_dc_working.add_change(change_entry.ChangeEntry(
-                  # Not using path because it is not a valid archive
-                  c.path, c.cur_info, c.old_info, c.content_status,
-                  parent_dir_changes=invalid_archive_dc_working))
-              invalid_archive_dc_cloud.add_change(change_entry.ChangeEntry(
-                  # Not using path because it is not a valid archive
-                  c.path, None, c.cur_info,
-                  # Remove the file directly because we move it to working dir
-                  change_entry.CONTENT_STATUS_DELETED,
-                  parent_dir_changes=invalid_archive_dc_cloud))
-              next_change = True
-
-          if next_change:
+          try:
+            compression.decompress_file(c.cur_info.tmp_file, original_tmp_file,
+                                        password=self.password)
+          except compression.CompressionInvalidArchive:
+            invalid_archive_dc_working.add_change(change_entry.ChangeEntry(
+                # Not using path because it is not a valid archive
+                c.path, c.cur_info, c.old_info, c.content_status,
+                parent_dir_changes=invalid_archive_dc_working))
+            invalid_archive_dc_cloud.add_change(change_entry.ChangeEntry(
+                # Not using path because it is not a valid archive
+                c.path, None, c.cur_info,
+                # Remove the file directly because we move it to working dir
+                change_entry.CONTENT_STATUS_DELETED,
+                parent_dir_changes=invalid_archive_dc_cloud))
             continue
 
           tmp_fi = file_info.load_file_info(original_tmp_file)
