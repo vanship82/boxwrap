@@ -43,8 +43,7 @@ class TestBoxWrap(unittest.TestCase):
       os.remove(_TEST_FI_CSV)
     shutil.copytree(os.path.join(_TEST_CASES_BASE_DIR, 'working'),
                     _TEST_WORKING)
-    shutil.copytree(os.path.join(_TEST_CASES_BASE_DIR, 'cloud'),
-                    _TEST_CLOUD)
+    os.makedirs(_TEST_CLOUD)
 
     self.under_test = main.BoxWrap(_TEST_WORKING, _TEST_CLOUD, _TEST_TMP,
                                    _TEST_FI_CSV, password='123456')
