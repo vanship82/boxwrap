@@ -36,5 +36,6 @@ nosetests.xml
 .*.swp
 
 # test cases
+tests/cases/compression/dest
 test_tmp
 
