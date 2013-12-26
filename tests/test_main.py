@@ -49,8 +49,9 @@ class TestBoxWrap(unittest.TestCase):
     self.under_test = main.BoxWrap(_TEST_WORKING, _TEST_CLOUD, _TEST_TMP,
                                    _TEST_FI_CSV, password='123456')
 
-    self.working_di, self.cloud_di = self.under_test.sync(
-        file_info.empty_dir_info('.'))
+    has_changes, self.working_di, self.cloud_di = (
+        self.under_test.sync(
+        file_info.empty_dir_info('.')))
 
   def _assertFileContent(self, content, file_path, debug=False):
     with open(file_path, 'r') as f:
@@ -119,7 +120,9 @@ class TestBoxWrap(unittest.TestCase):
     dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
     self._assertDirChanges(dc, debug=True)
 
-    self.working_di, self.cloud_di = self.under_test.sync(self.working_di)
+    has_changes, self.working_di, self.cloud_di = (
+        self.under_test.sync(self.working_di))
+    self.assertFalse(has_changes)
 
     dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
     self._assertDirChanges(dc, debug=True)
@@ -136,7 +139,9 @@ class TestBoxWrap(unittest.TestCase):
     f.close()
     os.remove(os.path.join(_TEST_WORKING, 'test1.txt'))
 
-    self.working_di, self.cloud_di = self.under_test.sync(self.working_di)
+    has_changes, self.working_di, self.cloud_di = (
+        self.under_test.sync(self.working_di))
+    self.assertTrue(has_changes)
 
     dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
     self._assertDirChanges(dc, debug=True)
@@ -153,8 +158,9 @@ class TestBoxWrap(unittest.TestCase):
         compression.get_compressed_filename(
             os.path.join(_TEST_CLOUD, 'dir1', 'test1_1.txt')))
 
-    self.working_di, self.cloud_di = self.under_test.sync(
-        self.working_di, debug=False)
+    has_changes, self.working_di, self.cloud_di = (
+        self.under_test.sync(self.working_di, debug=False))
+    self.assertTrue(has_changes)
 
     dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
     self._assertDirChanges(dc, debug=True)
@@ -175,7 +181,9 @@ class TestBoxWrap(unittest.TestCase):
         compression.get_compressed_filename(
             os.path.join(_TEST_CLOUD, 'test1.txt')))
 
-    self.working_di, self.cloud_di = self.under_test.sync(self.working_di)
+    has_changes, self.working_di, self.cloud_di = (
+        self.under_test.sync(self.working_di))
+    self.assertTrue(has_changes)
 
     dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
     self._assertDirChanges(dc, debug=True)
@@ -195,7 +203,9 @@ class TestBoxWrap(unittest.TestCase):
         compression.get_compressed_filename(
             os.path.join(_TEST_CLOUD, 'test_new.txt')))
 
-    self.working_di, self.cloud_di = self.under_test.sync(self.working_di)
+    has_changes, self.working_di, self.cloud_di = (
+        self.under_test.sync(self.working_di))
+    self.assertTrue(has_changes)
 
     dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
     self._assertDirChanges(dc, debug=True)
@@ -212,7 +222,9 @@ class TestBoxWrap(unittest.TestCase):
     f.write('test_new')
     f.close()
 
-    self.working_di, self.cloud_di = self.under_test.sync(self.working_di)
+    has_changes, self.working_di, self.cloud_di = (
+        self.under_test.sync(self.working_di))
+    self.assertTrue(has_changes)
 
     dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
     self._assertDirChanges(dc, debug=True)
@@ -228,7 +240,9 @@ class TestBoxWrap(unittest.TestCase):
     f.write('test_new')
     f.close()
 
-    self.working_di, self.cloud_di = self.under_test.sync(self.working_di)
+    has_changes, self.working_di, self.cloud_di = (
+        self.under_test.sync(self.working_di))
+    self.assertTrue(has_changes)
 
     dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
     self._assertDirChanges(dc, debug=True)

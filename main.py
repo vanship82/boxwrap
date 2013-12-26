@@ -43,6 +43,12 @@ class BoxWrap:
     for x in dir_info.flat_file_info_list():
       print x
 
+  def _is_no_change(self, dir_changes):
+    for c in dir_changes.flat_changes():
+      if c.content_status != change_entry.CONTENT_STATUS_NO_CHANGE:
+        return False
+    return True
+
   def sync(self, old_dir_info, debug=False):
     tstart = time.time()
     cwd = os.getcwd()
@@ -56,6 +62,7 @@ class BoxWrap:
     working_dc = change_entry.get_dir_changes(working_cur_di, working_old_di,
                                               root_dir=self.working_dir,
                                               tmp_dir=self.tmp_dir)
+    is_working_no_change = self._is_no_change(working_dc)
     working_dc = self._generate_compressed_dir_changes(working_dc)
     if debug:
       self._print_changes('********** working_dc', working_dc)
@@ -68,6 +75,7 @@ class BoxWrap:
     cloud_dc = change_entry.get_dir_changes(cloud_cur_di, cloud_old_di,
                                             root_dir=self.cloud_dir,
                                             tmp_dir=self.tmp_dir)
+    is_cloud_no_change = self._is_no_change(cloud_dc)
     cloud_dc_result = self._generate_original_dir_changes(cloud_dc)
     cloud_dc = cloud_dc_result[0]
     invalid_archives_dc_working = cloud_dc_result[1]
@@ -82,6 +90,7 @@ class BoxWrap:
                                             invalid_archives_dc_working)
       change_entry.apply_dir_changes_to_dir(self.cloud_dir,
                                             invalid_archives_dc_cloud)
+
     if debug:
       print '============== step 3: %s' % (time.time() - tstart)
 
@@ -115,7 +124,8 @@ class BoxWrap:
     if debug:
       print '============== step 6: %s' % (time.time() - tstart)
     os.chdir(cwd)
-    return [working_di, cloud_di]
+    return [not is_working_no_change or not is_cloud_no_change,
+            working_di, cloud_di]
 
   def _generate_compressed_dir_changes(self, dir_changes):
     dir_changes = copy.deepcopy(dir_changes)

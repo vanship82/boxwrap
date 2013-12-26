@@ -12,6 +12,11 @@ import main
 from sync import file_info
 
 
+# Maximum rounds of sync from a single round. We may need two or more rounds
+# if there are conflicts, dir/file transition, or continuously changing
+# content.
+_MAX_ROUND_SYNC=5
+
 _PROFILE_INFO_FILE='profile.ini'
 _PROFILE_DIR_INFO_FILE='profile_dir.csv'
 _PROFILE_TMP_DIR='tmp'
@@ -261,9 +266,14 @@ def _boxwrap():
       password=password,
       encryption_method=_ENCRYPTION_CHOICES[args['encryption_method']],
       compression_level=_COMPRESSION_CHOICES[args['compression_level']])
-  working_di, wrap_di = boxwrap.sync(dir_info, debug=True)
-  with open(profile_dir_info_file, 'wb') as f:
-    working_di.write_to_csv(f)
+  for i in range(_MAX_ROUND_SYNC):
+    print >>sys.stderr, 'Performing sync and merge round #%s' % (i + 1)
+    has_changes, working_di, wrap_di = boxwrap.sync(dir_info, debug=True)
+    if not has_changes:
+      break
+    with open(profile_dir_info_file, 'wb') as f:
+      working_di.write_to_csv(f)
+    dir_info = working_di
 
 
 if __name__ == '__main__':
