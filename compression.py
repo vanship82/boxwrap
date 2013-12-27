@@ -35,7 +35,6 @@ def _get_binary():
 
 
 ZIP_BIN = _get_binary()
-print ZIP_BIN
 
 INVALID_PASSWORD = 'INVALID_PASSWORD_DO_NOT_USE_AT_ALL_NOTICE_NOTICE_NOTICE'
 
