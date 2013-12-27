@@ -20,9 +20,9 @@ def _get_binary():
   if arch[1] == 'ELF':
     # Linux
     if arch[0] == '32bit':
-      binary = '7za_32'
+      binary = '7za_linux_x86'
     elif arch[0] == '64bit':
-      binary = '7za_64'
+      binary = '7za_linux_x64'
   elif arch[1] == 'WindowsPE':
     # Windows
     if arch[0] == '32bit':
@@ -35,6 +35,7 @@ def _get_binary():
 
 
 ZIP_BIN = _get_binary()
+print ZIP_BIN
 
 INVALID_PASSWORD = 'INVALID_PASSWORD_DO_NOT_USE_AT_ALL_NOTICE_NOTICE_NOTICE'
 
