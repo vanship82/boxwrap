@@ -134,10 +134,17 @@ class BoxWrap:
         compressed_tmp_filename = change_entry.generate_tmp_file(self.tmp_dir)
         compressed_tmp_file = os.path.join(self.tmp_dir,
                                            compressed_tmp_filename)
-        compression.compress_file(c.cur_info.tmp_file, compressed_tmp_file,
+        tmp_file_with_realname = os.path.join(self.tmp_dir,
+                                              os.path.basename(c.path))
+        # Rename the tmp file so that the archive includes the original
+        # filename.
+        os.rename(c.cur_info.tmp_file, tmp_file_with_realname)
+        compression.compress_file(tmp_file_with_realname, compressed_tmp_file,
                                   password=self.password,
                                   encryption_method=self.encryption_method,
                                   compression_level=self.compression_level)
+        # Rename the tmp filename back.
+        os.rename(tmp_file_with_realname, c.cur_info.tmp_file)
         tmp_fi = file_info.load_file_info(compressed_tmp_file)
         compressed_file_info = file_info.FileInfo(
             # TODO: check conflict of compressed filename?
