@@ -176,9 +176,12 @@ def _merge_both_dirs(c1, c2, dc1, dc2,
                                   parent_dir_changes=c2.parent_dir_changes)
 
   if not c1:
-    if not c2 and c2.content_status == change_entry.CONTENT_STATUS_NEW:
+    if c2 and c2.content_status == change_entry.CONTENT_STATUS_NEW:
       _sync_change(c2, dc_new1, dc_old1, dir_changes_new=results[0],
                    dir_changes_old=results[1])
+      _sync_change(c2, dc_new2, dc_old2, dir_changes_new=results[2],
+                   dir_changes_old=results[3],
+                   content_status_new=change_entry.CONTENT_STATUS_NO_CHANGE)
   elif c1.content_status == change_entry.CONTENT_STATUS_NO_CHANGE:
     if c2.content_status == change_entry.CONTENT_STATUS_DELETED:
       # sync c2 to c1
@@ -277,7 +280,7 @@ def merge(dir_changes1, dir_changes2,
                                     change_entry.CONTENT_STATUS_UNSPECIFIED,
                                     parent_dir_changes=parent_dir_changes_old2)
   dc_conflict = change_entry.DirChanges(
-      dir_changes1.base_dir(), change_entry.CONTENT_STATUS_UNSPECIFIED,
+      base_dir, change_entry.CONTENT_STATUS_UNSPECIFIED,
       parent_dir_changes=parent_dir_changes_conflict)
   for c1, c2 in util.merge_two_iterators(
       iter(dir_changes1.changes() if dir_changes1 else []),
