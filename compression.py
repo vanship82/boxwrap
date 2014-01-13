@@ -50,9 +50,10 @@ COMPRESSION_LEVEL_HIGH = 9
 
 
 class CompressionException(Exception):
-  def __init__(self, returncode, path):
+  def __init__(self, returncode, path, output=None):
     self.returncode = returncode
     self.path = path
+    self.output = output
 
   def get_message(self):
     return 'Exception'
@@ -162,9 +163,9 @@ def compress_file(src_file, dest_file,
     return dest_file
   except subprocess.CalledProcessError as e:
     if RETURN_CODE_EXCEPTION_MAP.has_key(e.returncode):
-      raise RETURN_CODE_EXCEPTION_MAP[e.returncode]('', e.returncode, src_file)
+      raise RETURN_CODE_EXCEPTION_MAP[e.returncode](e.returncode, src_file)
     else:
-      raise CompressionException('', e.returncode, src_file)
+      raise CompressionException(e.returncode, src_file)
 
 def compress_recursively(path, src_base_path, dest_base_path,
                          compression_level=COMPRESSION_LEVEL_NORMAL,
@@ -219,12 +220,12 @@ def decompress_file(src_file, dest_file,
   if test_process.returncode != 0:
     returncode = test_process.returncode
     if 'Can not open file as archive' in test_output:
-      raise CompressionInvalidArchive(test_output, returncode, src_file)
+      raise CompressionInvalidArchive(returncode, src_file, output=test_output)
     elif 'Wrong password?' in test_output:
-      raise CompressionWrongPassword(test_output, returncode, src_file)
+      raise CompressionWrongPassword(returncode, src_file, output=test_output)
     elif RETURN_CODE_EXCEPTION_MAP.has_key(returncode, src_file):
-      raise RETURN_CODE_EXCEPTION_MAP[returncode](test_output, returncode,
-                                                  src_file)
+      raise RETURN_CODE_EXCEPTION_MAP[returncode](returncode, src_file,
+                                                  output=test_output)
     else:
       raise CompressionException(test_output, returncode, src_file)
 
@@ -237,9 +238,9 @@ def decompress_file(src_file, dest_file,
     return dest_file
   except subprocess.CalledProcessError as e:
     if RETURN_CODE_EXCEPTION_MAP.has_key(e.returncode):
-      raise RETURN_CODE_EXCEPTION_MAP[e.returncode]('', e.returncode)
+      raise RETURN_CODE_EXCEPTION_MAP[e.returncode](e.returncode)
     else:
-      raise CompressionException('', e.returncode)
+      raise CompressionException(e.returncode)
 
 def decompress_recursively(path, src_base_path, dest_base_path,
                            password=None):
@@ -282,9 +283,9 @@ def test_decompress_file(src_file, password=None):
     return True
   except subprocess.CalledProcessError as e:
     if RETURN_CODE_EXCEPTION_MAP.has_key(e.returncode):
-      raise RETURN_CODE_EXCEPTION_MAP[e.returncode]('', e.returncode)
+      raise RETURN_CODE_EXCEPTION_MAP[e.returncode](e.returncode)
     else:
-      raise CompressionException('', e.returncode)
+      raise CompressionException(e.returncode)
 
 def test_decompress_recursively(path, src_base_path, password=None):
   src_total_path = os.path.join(src_base_path, path)
