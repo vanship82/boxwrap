@@ -50,38 +50,47 @@ COMPRESSION_LEVEL_HIGH = 9
 
 
 class CompressionException(Exception):
-  def __init__(self, message, returncode):
-    Exception.__init__(self, message)
+  def __init__(self, returncode, path):
     self.returncode = returncode
-  pass
+    self.path = path
+
+  def get_message(self):
+    return 'Exception'
 
 
 class CompressionWarning(CompressionException):
-  pass
+  def get_message(self):
+    return 'Warning'
 
 
 class CompressionFatalError(CompressionException):
-  pass
+  def get_message(self):
+    return 'Fatal error'
 
 
 class CompressionCommandLineError(CompressionException):
-  pass
+  def get_message(self):
+    return 'Command line error'
 
 
 class CompressionInsufficientMemory(CompressionException):
-  pass
+  def get_message(self):
+    return 'Insufficient memory'
 
 
 class CompressionUserInterrupt(CompressionException):
-  pass
+  def get_message(self):
+    return 'User interrupt'
 
 
 class CompressionWrongPassword(CompressionException):
-  pass
+  def get_message(self):
+    return 'Wrong password'
 
 
 class CompressionInvalidArchive(CompressionException):
-  pass
+  def get_message(self):
+    return 'Invalid archive'
 
 
 RETURN_CODE_EXCEPTION_MAP = {
@@ -153,9 +162,9 @@ def compress_file(src_file, dest_file,
     return dest_file
   except subprocess.CalledProcessError as e:
     if RETURN_CODE_EXCEPTION_MAP.has_key(e.returncode):
-      raise RETURN_CODE_EXCEPTION_MAP[e.returncode]('', e.returncode)
+      raise RETURN_CODE_EXCEPTION_MAP[e.returncode]('', e.returncode, src_file)
     else:
-      raise CompressionException('', e.returncode)
+      raise CompressionException('', e.returncode, src_file)
 
 def compress_recursively(path, src_base_path, dest_base_path,
                          compression_level=COMPRESSION_LEVEL_NORMAL,
@@ -210,13 +219,14 @@ def decompress_file(src_file, dest_file,
   if test_process.returncode != 0:
     returncode = test_process.returncode
     if 'Can not open file as archive' in test_output:
-      raise CompressionInvalidArchive('', returncode)
+      raise CompressionInvalidArchive(test_output, returncode, src_file)
     elif 'Wrong password?' in test_output:
-      raise CompressionWrongPassword('', returncode)
-    elif RETURN_CODE_EXCEPTION_MAP.has_key(returncode):
-      raise RETURN_CODE_EXCEPTION_MAP[returncode]('', returncode)
+      raise CompressionWrongPassword(test_output, returncode, src_file)
+    elif RETURN_CODE_EXCEPTION_MAP.has_key(returncode, src_file):
+      raise RETURN_CODE_EXCEPTION_MAP[returncode](test_output, returncode,
+                                                  src_file)
     else:
-      raise CompressionException('', returncode)
+      raise CompressionException(test_output, returncode, src_file)
 
   try:
     dest_f = open(dest_file, 'w')

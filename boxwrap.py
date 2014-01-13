@@ -247,11 +247,18 @@ def _calculate_password_hash(password, profile):
   return sha256.hexdigest()
 
 
+def _clean_up_tmp_dir(profile_dir):
+  profile_tmp_dir = os.path.join(profile_dir, _PROFILE_TMP_DIR)
+  map(os.unlink,
+      [os.path.join(profile_tmp_dir,f) for f in os.listdir(profile_tmp_dir)])
+
+
 def _boxwrap():
   args = _validate_args_and_update_profile(_parse_args())
   password = args['password']
   profile_dir_info_file = os.path.join(
       args['profile_dir'], _PROFILE_DIR_INFO_FILE)
+  _clean_up_tmp_dir(args['profile_dir'])
   if os.path.isdir(profile_dir_info_file):
     shutil.rmtree(profile_dir_info_file)
   if os.path.isfile(profile_dir_info_file):
@@ -259,21 +266,28 @@ def _boxwrap():
         open(profile_dir_info_file), '.')
   else:
     dir_info = file_info.empty_dir_info('.')
-  boxwrap = main.BoxWrap(
-      args['working_dir'], args['wrap_dir'],
-      os.path.join(args['profile_dir'], _PROFILE_TMP_DIR),
-      profile_dir_info_file,
-      password=password,
-      encryption_method=_ENCRYPTION_CHOICES[args['encryption_method']],
-      compression_level=_COMPRESSION_CHOICES[args['compression_level']])
-  for i in range(_MAX_ROUND_SYNC):
-    print >>sys.stderr, 'Performing sync and merge round #%s' % (i + 1)
-    has_changes, working_di, wrap_di = boxwrap.sync(dir_info, debug=True)
-    if not has_changes:
-      break
-    with open(profile_dir_info_file, 'wb') as f:
-      working_di.write_to_csv(f)
-    dir_info = working_di
+  try:
+    boxwrap = main.BoxWrap(
+        args['working_dir'], args['wrap_dir'],
+        os.path.join(args['profile_dir'], _PROFILE_TMP_DIR),
+        profile_dir_info_file,
+        password=password,
+        encryption_method=_ENCRYPTION_CHOICES[args['encryption_method']],
+        compression_level=_COMPRESSION_CHOICES[args['compression_level']])
+    for i in range(_MAX_ROUND_SYNC):
+      print >>sys.stderr, 'Performing sync and merge round #%s' % (i + 1)
+      has_changes, working_di, wrap_di = boxwrap.sync(dir_info, debug=True)
+      if not has_changes:
+        break
+      with open(profile_dir_info_file, 'wb') as f:
+        working_di.write_to_csv(f)
+      dir_info = working_di
+  except compression.CompressionException as e:
+    print >>sys.stderr, (
+        '%s. The archive %s is not able to be decompressed.' %
+        e.get_message(), e.path)
+  finally:
+    _clean_up_tmp_dir(args['profile_dir'])
 
 
 if __name__ == '__main__':
