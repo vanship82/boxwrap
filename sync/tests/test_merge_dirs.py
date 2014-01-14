@@ -110,15 +110,13 @@ class TestMergeDirs(unittest.TestCase):
       dc = dc.dir_changes(os.sep.join(split_paths[:i + 1]))
     self.assertEquals(expected_status, dc.change(path).content_status)
 
-  def _merge_for_test(self, verbose=False):
+  def _merge_for_test(self):
     self.dir_changes1 = change_entry.get_dir_changes(
         file_info.load_rel_dir_info(_TEST_DIR1),
-        self.dir_info1, root_dir=_TEST_DIR1, tmp_dir=_TEST_TMP,
-        verbose=verbose)
+        self.dir_info1, root_dir=_TEST_DIR1, tmp_dir=_TEST_TMP)
     self.dir_changes2 = change_entry.get_dir_changes(
         file_info.load_rel_dir_info(_TEST_DIR2),
-        self.dir_info2, root_dir=_TEST_DIR2, tmp_dir=_TEST_TMP,
-        verbose=verbose)
+        self.dir_info2, root_dir=_TEST_DIR2, tmp_dir=_TEST_TMP)
 
     result = merge.merge(self.dir_changes1, self.dir_changes2)
     self.dc_new1 = result[0]
