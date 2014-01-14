@@ -235,6 +235,7 @@ class TestMain(unittest.TestCase):
     self._assertDirChanges(dc, debug=True)
     self._assertFileContent(
         'test1_1\n', os.path.join(_TEST_WORKING, 'dir2', 'test1_1.txt'))
+    self.assertFalse(os.path.exists(os.path.join(_TEST_WORKING, 'dir1')))
 
   def testInvalidArchiveNotCompressedFilename(self):
     # Add new file not compressed and without compressed filename

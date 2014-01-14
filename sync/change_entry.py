@@ -79,6 +79,9 @@ class DirChanges:
     return self._base_dir
 
   def dir_status(self):
+    if self._dir_status == CONTENT_STATUS_UNSPECIFIED:
+      # This only happens when dir is empty.
+      return CONTENT_STATUS_NO_CHANGE
     return self._dir_status
 
   def add_change(self, change):
@@ -113,7 +116,7 @@ class DirChanges:
       self._dir_status = CONTENT_STATUS_MODIFIED
     elif change.content_status == CONTENT_STATUS_NEW:
       if self._dir_status in [CONTENT_STATUS_UNSPECIFIED,
-                                          CONTENT_STATUS_NEW]:
+                              CONTENT_STATUS_NEW]:
          self._dir_status = CONTENT_STATUS_NEW
       else:
          self._dir_status = CONTENT_STATUS_MODIFIED
