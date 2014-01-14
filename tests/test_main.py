@@ -21,7 +21,7 @@ _TEST_FI_CSV = os.path.join(_TEST_TMP_BASE_DIR, 'fi.csv')
 
 ''' Test boxwrap simple
 '''
-class TestBoxWrap(unittest.TestCase):
+class TestMain(unittest.TestCase):
 
   def setUp(self):
     try:
@@ -51,6 +51,13 @@ class TestBoxWrap(unittest.TestCase):
     has_changes, self.working_di, self.cloud_di = (
         self.under_test.sync(
         file_info.empty_dir_info('.')))
+
+    # Clean up tmp for initial sync
+    try:
+      shutil.rmtree(_TEST_TMP)
+    except:
+      pass
+    os.makedirs(_TEST_TMP)
 
   def _assertFileContent(self, content, file_path, debug=False):
     with open(file_path, 'r') as f:
@@ -214,6 +221,20 @@ class TestBoxWrap(unittest.TestCase):
     self._assertFileContent(
         'test1_1\n',
         os.path.join(_TEST_WORKING, 'test_new (conflict copy 1).txt'))
+
+  def testSyncCloudDirNewDelete(self):
+    shutil.move(
+        os.path.join(_TEST_CLOUD, 'dir1'),
+        os.path.join(_TEST_CLOUD, 'dir2'))
+
+    has_changes, self.working_di, self.cloud_di = (
+        self.under_test.sync(self.working_di, debug=False))
+    self.assertTrue(has_changes)
+
+    dc = change_entry.get_dir_changes(self.cloud_di, self.working_di)
+    self._assertDirChanges(dc, debug=True)
+    self._assertFileContent(
+        'test1_1\n', os.path.join(_TEST_WORKING, 'dir2', 'test1_1.txt'))
 
   def testInvalidArchiveNotCompressedFilename(self):
     # Add new file not compressed and without compressed filename

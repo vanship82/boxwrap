@@ -183,7 +183,9 @@ class BoxWrap:
 
       cur_info = None
       if c.cur_info:
-        if c.cur_info.tmp_file:
+        if c.cur_info.is_dir:
+          cur_info = c.cur_info
+        elif c.cur_info.tmp_file:
           original_tmp_filename = change_entry.generate_tmp_file(self.tmp_dir)
           original_tmp_file = os.path.join(self.tmp_dir,
                                            original_tmp_filename)
