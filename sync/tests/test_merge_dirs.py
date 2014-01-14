@@ -24,6 +24,8 @@ _TEST_CASE_DIR = 'test_dir'
 _TEST_CASE_DIR_REL = os.path.join('.', 'test_dir')
 _TEST_CASE_DIR_NEW = 'test_dir_new'
 _TEST_CASE_DIR_NEW_REL = os.path.join('.', 'test_dir_new')
+_TEST_CASE_DIR_EMPTY = 'test_dir_empty'
+_TEST_CASE_DIR_EMPTY_REL = os.path.join('.', 'test_dir_empty')
 
 _TEST_INITIAL_CONTENT = 'test'
 
@@ -56,6 +58,8 @@ class TestMergeDirs(unittest.TestCase):
     f = open(os.path.join(self.test_dir1_level1, _TEST_CASE_FILE2), 'w')
     f.write(_TEST_INITIAL_CONTENT)
     f.close()
+    self.test_dir1_level_empty = os.path.join(_TEST_DIR1, _TEST_CASE_DIR_EMPTY)
+    os.makedirs(self.test_dir1_level_empty)
     self.dir_info1 = change_entry.apply_dir_changes_to_dir_info(
         '.',  # use current dir as base dir
         change_entry.get_dir_changes(
@@ -71,6 +75,8 @@ class TestMergeDirs(unittest.TestCase):
     f = open(os.path.join(self.test_dir2_level1, _TEST_CASE_FILE2), 'w')
     f.write(_TEST_INITIAL_CONTENT)
     f.close()
+    self.test_dir2_level_empty = os.path.join(_TEST_DIR2, _TEST_CASE_DIR_EMPTY)
+    os.makedirs(self.test_dir2_level_empty)
     self.dir_info2 = change_entry.apply_dir_changes_to_dir_info(
         '.',  # use current dir as base dir
         change_entry.get_dir_changes(
@@ -154,10 +160,10 @@ class TestMergeDirs(unittest.TestCase):
   def testInitialSync(self):
     self._merge_for_test()
 
-    self.assertEquals(4, len(self.changes_new1))
-    self.assertEquals(4, len(self.changes_old1))
-    self.assertEquals(4, len(self.changes_new2))
-    self.assertEquals(4, len(self.changes_old2))
+    self.assertEquals(5, len(self.changes_new1))
+    self.assertEquals(5, len(self.changes_old1))
+    self.assertEquals(5, len(self.changes_new2))
+    self.assertEquals(5, len(self.changes_old2))
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
                               self.dc_new1, '.')
@@ -219,10 +225,10 @@ class TestMergeDirs(unittest.TestCase):
 
     self._merge_for_test()
 
-    self.assertEquals(5, len(self.changes_new1))
-    self.assertEquals(5, len(self.changes_old1))
-    self.assertEquals(5, len(self.changes_new2))
-    self.assertEquals(5, len(self.changes_old2))
+    self.assertEquals(6, len(self.changes_new1))
+    self.assertEquals(6, len(self.changes_old1))
+    self.assertEquals(6, len(self.changes_new2))
+    self.assertEquals(6, len(self.changes_old2))
     self.assertEquals(0, len(self.changes_conflict))
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
@@ -277,10 +283,10 @@ class TestMergeDirs(unittest.TestCase):
 
     self._merge_for_test()
 
-    self.assertEquals(4, len(self.changes_new1))
-    self.assertEquals(4, len(self.changes_old1))
-    self.assertEquals(4, len(self.changes_new2))
-    self.assertEquals(4, len(self.changes_old2))
+    self.assertEquals(5, len(self.changes_new1))
+    self.assertEquals(5, len(self.changes_old1))
+    self.assertEquals(5, len(self.changes_new2))
+    self.assertEquals(5, len(self.changes_old2))
     self.assertEquals(3, len(self.changes_conflict))
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
@@ -324,10 +330,10 @@ class TestMergeDirs(unittest.TestCase):
 
     self._merge_for_test()
 
-    self.assertEquals(4, len(self.changes_new1))
-    self.assertEquals(4, len(self.changes_old1))
-    self.assertEquals(3, len(self.changes_new2))
-    self.assertEquals(4, len(self.changes_old2))
+    self.assertEquals(5, len(self.changes_new1))
+    self.assertEquals(5, len(self.changes_old1))
+    self.assertEquals(4, len(self.changes_new2))
+    self.assertEquals(5, len(self.changes_old2))
     self.assertEquals(0, len(self.changes_conflict))
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
@@ -375,10 +381,10 @@ class TestMergeDirs(unittest.TestCase):
 
     self._merge_for_test()
 
-    self.assertEquals(3, len(self.changes_new1))
-    self.assertEquals(4, len(self.changes_old1))
-    self.assertEquals(4, len(self.changes_new2))
-    self.assertEquals(4, len(self.changes_old2))
+    self.assertEquals(4, len(self.changes_new1))
+    self.assertEquals(5, len(self.changes_old1))
+    self.assertEquals(5, len(self.changes_new2))
+    self.assertEquals(5, len(self.changes_old2))
     self.assertEquals(0, len(self.changes_conflict))
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
@@ -424,13 +430,13 @@ class TestMergeDirs(unittest.TestCase):
 
     self._merge_for_test()
 
-    self.assertEquals(1, len(self.changes_new1))
-    self.assertEquals(4, len(self.changes_old1))
-    self.assertEquals(4, len(self.changes_new2))
-    self.assertEquals(4, len(self.changes_old2))
+    self.assertEquals(2, len(self.changes_new1))
+    self.assertEquals(5, len(self.changes_old1))
+    self.assertEquals(5, len(self.changes_new2))
+    self.assertEquals(5, len(self.changes_old2))
     self.assertEquals(0, len(self.changes_conflict))
 
-    self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
                               self.dc_new1, '.')
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
@@ -471,10 +477,10 @@ class TestMergeDirs(unittest.TestCase):
 
     self._merge_for_test()
 
-    self.assertEquals(4, len(self.changes_new1))
-    self.assertEquals(4, len(self.changes_old1))
-    self.assertEquals(1, len(self.changes_new2))
-    self.assertEquals(4, len(self.changes_old2))
+    self.assertEquals(5, len(self.changes_new1))
+    self.assertEquals(5, len(self.changes_old1))
+    self.assertEquals(2, len(self.changes_new2))
+    self.assertEquals(5, len(self.changes_old2))
     self.assertEquals(0, len(self.changes_conflict))
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
@@ -499,7 +505,7 @@ class TestMergeDirs(unittest.TestCase):
                               os.path.join(_TEST_CASE_DIR_REL,
                                            _TEST_CASE_FILE2))
 
-    self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
                               self.dc_new2, '.')
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
@@ -513,19 +519,63 @@ class TestMergeDirs(unittest.TestCase):
                               os.path.join(_TEST_CASE_DIR_REL,
                                            _TEST_CASE_FILE2))
 
+  def testDeleteEmptyNoChangeNoConflict(self):
+    shutil.rmtree(self.test_dir1_level_empty)
+    self._merge_for_test()
+
+    self.assertEquals(4, len(self.changes_new1))
+    self.assertEquals(5, len(self.changes_old1))
+    self.assertEquals(5, len(self.changes_new2))
+    self.assertEquals(5, len(self.changes_old2))
+    self.assertEquals(0, len(self.changes_conflict))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_new1, '.')
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old1, _TEST_CASE_DIR_EMPTY_REL)
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_new2, _TEST_CASE_DIR_EMPTY_REL)
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old2, _TEST_CASE_DIR_EMPTY_REL)
+
+  def testNoChangeDeleteEmptyNoConflict(self):
+    shutil.rmtree(self.test_dir2_level_empty)
+    self._merge_for_test()
+
+    self.assertEquals(5, len(self.changes_new1))
+    self.assertEquals(5, len(self.changes_old1))
+    self.assertEquals(4, len(self.changes_new2))
+    self.assertEquals(5, len(self.changes_old2))
+    self.assertEquals(0, len(self.changes_conflict))
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_new1, _TEST_CASE_DIR_EMPTY_REL)
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old1, _TEST_CASE_DIR_EMPTY_REL)
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
+                              self.dc_new2, '.')
+
+    self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
+                              self.dc_old2, _TEST_CASE_DIR_EMPTY_REL)
+
   def testDeleteDeleteNoConflict(self):
     shutil.rmtree(self.test_dir1_level1)
     shutil.rmtree(self.test_dir2_level1)
 
     self._merge_for_test()
 
-    self.assertEquals(1, len(self.changes_new1))
-    self.assertEquals(4, len(self.changes_old1))
-    self.assertEquals(1, len(self.changes_new2))
-    self.assertEquals(4, len(self.changes_old2))
+    self.assertEquals(2, len(self.changes_new1))
+    self.assertEquals(5, len(self.changes_old1))
+    self.assertEquals(2, len(self.changes_new2))
+    self.assertEquals(5, len(self.changes_old2))
     self.assertEquals(0, len(self.changes_conflict))
 
-    self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
                               self.dc_new1, '.')
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
@@ -539,7 +589,7 @@ class TestMergeDirs(unittest.TestCase):
                               os.path.join(_TEST_CASE_DIR_REL,
                                            _TEST_CASE_FILE2))
 
-    self._assertContentStatus(change_entry.CONTENT_STATUS_MODIFIED,
+    self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
                               self.dc_new2, '.')
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_DELETED,
@@ -573,10 +623,10 @@ class TestMergeDirs(unittest.TestCase):
 
     self._merge_for_test()
 
-    self.assertEquals(7, len(self.changes_new1))
-    self.assertEquals(7, len(self.changes_old1))
-    self.assertEquals(7, len(self.changes_new2))
-    self.assertEquals(7, len(self.changes_old2))
+    self.assertEquals(8, len(self.changes_new1))
+    self.assertEquals(8, len(self.changes_old1))
+    self.assertEquals(8, len(self.changes_new2))
+    self.assertEquals(8, len(self.changes_old2))
     self.assertEquals(3, len(self.changes_conflict))
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
@@ -636,10 +686,10 @@ class TestMergeDirs(unittest.TestCase):
 
     self._merge_for_test()
 
-    self.assertEquals(7, len(self.changes_new1))
-    self.assertEquals(7, len(self.changes_old1))
-    self.assertEquals(7, len(self.changes_new2))
-    self.assertEquals(7, len(self.changes_old2))
+    self.assertEquals(8, len(self.changes_new1))
+    self.assertEquals(8, len(self.changes_old1))
+    self.assertEquals(8, len(self.changes_new2))
+    self.assertEquals(8, len(self.changes_old2))
     self.assertEquals(0, len(self.changes_conflict))
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_NO_CHANGE,
@@ -699,10 +749,10 @@ class TestMergeDirs(unittest.TestCase):
 
     self._merge_for_test()
 
-    self.assertEquals(7, len(self.changes_new1))
-    self.assertEquals(7, len(self.changes_old1))
-    self.assertEquals(7, len(self.changes_new2))
-    self.assertEquals(7, len(self.changes_old2))
+    self.assertEquals(8, len(self.changes_new1))
+    self.assertEquals(8, len(self.changes_old1))
+    self.assertEquals(8, len(self.changes_new2))
+    self.assertEquals(8, len(self.changes_old2))
     self.assertEquals(0, len(self.changes_conflict))
 
     self._assertContentStatus(change_entry.CONTENT_STATUS_NEW,
