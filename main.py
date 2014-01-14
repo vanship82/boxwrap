@@ -55,7 +55,8 @@ class BoxWrap:
     working_old_di = old_dir_info
     cloud_old_di = self._extract_compressed_dir_info(old_dir_info)
     if debug:
-      print '============== step 1: %s' % (time.time() - tstart)
+      print '============== Latency till extract input dir info : %s s' % (
+          time.time() - tstart)
 
     if verbose:
       phase = 1
@@ -70,14 +71,14 @@ class BoxWrap:
     is_working_no_change = self._is_no_change(working_dc)
     working_dc = self._generate_compressed_dir_changes(working_dc)
     if debug:
+      print '============== Latency after examing working_dir: %s s' % (
+         time.time() - tstart)
       self._print_changes('********** working_dc', working_dc)
-    if debug:
-      print '============== step 2: %s' % (time.time() - tstart)
 
     if verbose:
       phase += 1
       print 'Phase %s: Examine changes on wrap_dir at %s' % (
-          phase, self.working_dir)
+          phase, self.cloud_dir)
     os.chdir(self.cloud_dir)
     cloud_cur_di = file_info.load_dir_info(
         '.', calculate_hash=True, key=self.compression_key)
@@ -100,10 +101,13 @@ class BoxWrap:
                                             invalid_archives_dc_working)
       change_entry.apply_dir_changes_to_dir(self.cloud_dir,
                                             invalid_archives_dc_cloud)
-
     if debug:
-      print '============== step 3: %s' % (time.time() - tstart)
+      print '============== Latency after examing wrap_dir: %s s' % (
+          time.time() - tstart)
 
+    if verbose:
+      phase += 1
+      print 'Phase %s: Merge changes on both dirs' % phase
     result = merge.merge(working_dc, cloud_dc)
 
     working_dc_new = result[0]
@@ -114,25 +118,34 @@ class BoxWrap:
     cloud_dc_conflict = self._extract_compressed_dir_changes(
         working_dc_conflict)
     if debug:
+      print '============== Latency after merge: %s s' % (time.time() - tstart)
       self._print_changes('********** working_dc_conflict', working_dc_conflict)
       self._print_changes('********** cloud_dc_conflict', cloud_dc_conflict)
-    if debug:
-      print '============== step 4: %s' % (time.time() - tstart)
 
+    if verbose:
+      phase += 1
+      print 'Phase %s: Apply merged changes on working_dir at %s' % (
+          phase, self.working_dir)
     change_entry.apply_dir_changes_to_dir(self.working_dir, working_dc_new)
     change_entry.apply_dir_changes_to_dir(
         self.working_dir, working_dc_conflict,
         force_conflict=change_entry.CONFLICT_NEW)
     working_di = change_entry.apply_dir_changes_to_dir_info('.', working_dc_old)
     if debug:
-      print '============== step 5: %s' % (time.time() - tstart)
+      print '============== Latency after applying merged changes on working_dir: %s' % (time.time() - tstart)
+
+    if verbose:
+      phase += 1
+      print 'Phase %s: Apply merged changes on wrap_dir at %s' % (
+          phase, self.cloud_dir)
     change_entry.apply_dir_changes_to_dir(self.cloud_dir, cloud_dc_new)
     change_entry.apply_dir_changes_to_dir(
         self.cloud_dir, cloud_dc_conflict,
         force_conflict=change_entry.CONFLICT_NEW)
     cloud_di = change_entry.apply_dir_changes_to_dir_info('.', cloud_dc_old)
     if debug:
-      print '============== step 6: %s' % (time.time() - tstart)
+      print '============== Latency after applying merged changes on wrap_dir: %s' % (time.time() - tstart)
+
     os.chdir(cwd)
     return [not is_working_no_change or not is_cloud_no_change,
             working_di, cloud_di]
