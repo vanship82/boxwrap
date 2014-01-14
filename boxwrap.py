@@ -276,7 +276,7 @@ def _boxwrap():
         compression_level=_COMPRESSION_CHOICES[args['compression_level']])
     for i in range(_MAX_ROUND_SYNC):
       print >>sys.stderr, 'Performing sync and merge round #%s' % (i + 1)
-      has_changes, working_di, wrap_di = boxwrap.sync(dir_info, debug=True)
+      has_changes, working_di, wrap_di = boxwrap.sync(dir_info, verbose=True)
       if not has_changes:
         break
       with open(profile_dir_info_file, 'wb') as f:

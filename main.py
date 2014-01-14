@@ -33,9 +33,9 @@ class BoxWrap:
     print name
     for x in dir_changes.flat_changes():
       print x
-      print '    cur_info: %s' % x.cur_info
-      print '    old_info: %s' % x.old_info
-      print '    conflict_info: %s' % x.conflict_info
+      # print '    cur_info: %s' % x.cur_info
+      # print '    old_info: %s' % x.old_info
+      # print '    conflict_info: %s' % x.conflict_info
 
   # TODO: debug only, remove it
   def _print_di(self, name, dir_info):
@@ -49,7 +49,7 @@ class BoxWrap:
         return False
     return True
 
-  def sync(self, old_dir_info, debug=False):
+  def sync(self, old_dir_info, debug=False, verbose=False):
     tstart = time.time()
     cwd = os.getcwd()
     working_old_di = old_dir_info
@@ -57,11 +57,16 @@ class BoxWrap:
     if debug:
       print '============== step 1: %s' % (time.time() - tstart)
 
+    if verbose:
+      phase = 1
+      print 'Phase %s: Examine changes on working_dir at %s' % (
+          phase, self.working_dir)
     os.chdir(self.working_dir)
     working_cur_di = file_info.load_dir_info('.', calculate_hash=True)
     working_dc = change_entry.get_dir_changes(working_cur_di, working_old_di,
                                               root_dir=self.working_dir,
-                                              tmp_dir=self.tmp_dir)
+                                              tmp_dir=self.tmp_dir,
+                                              verbose=verbose)
     is_working_no_change = self._is_no_change(working_dc)
     working_dc = self._generate_compressed_dir_changes(working_dc)
     if debug:
@@ -69,12 +74,17 @@ class BoxWrap:
     if debug:
       print '============== step 2: %s' % (time.time() - tstart)
 
+    if verbose:
+      phase += 1
+      print 'Phase %s: Examine changes on wrap_dir at %s' % (
+          phase, self.working_dir)
     os.chdir(self.cloud_dir)
     cloud_cur_di = file_info.load_dir_info(
         '.', calculate_hash=True, key=self.compression_key)
     cloud_dc = change_entry.get_dir_changes(cloud_cur_di, cloud_old_di,
                                             root_dir=self.cloud_dir,
-                                            tmp_dir=self.tmp_dir)
+                                            tmp_dir=self.tmp_dir,
+                                            verbose=verbose)
     is_cloud_no_change = self._is_no_change(cloud_dc)
     cloud_dc_result = self._generate_original_dir_changes(cloud_dc)
     cloud_dc = cloud_dc_result[0]

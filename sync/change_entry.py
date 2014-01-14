@@ -148,18 +148,18 @@ def generate_tmp_file(tmp_dir):
 
 # root_dir is the root for new_dir_info
 def get_dir_changes(new_dir_info, old_dir_info, parent_dir_changes=None,
-                    root_dir=None, tmp_dir=None):
+                    root_dir=None, tmp_dir=None, verbose=False):
   # TODO: add permission change status
   top_dir_delete_change_path = None
   base_dir = (new_dir_info.base_dir() if new_dir_info
               else old_dir_info.base_dir())
-  cur_dir_changes = DirChanges(base_dir, CONTENT_STATUS_UNSPECIFIED,
+  cur_dir_changes = DirChanges(base_dir, CONTENT_STATUS_NO_CHANGE,
                                parent_dir_changes=parent_dir_changes)
   for e_new_info, e_old_info in util.merge_two_iterators(
       iter(new_dir_info.file_info_list() if new_dir_info else []),
       iter(old_dir_info.file_info_list() if old_dir_info else []),
       key_func=lambda x: x.path_for_sorting()):
-    dir_status = CONTENT_STATUS_UNSPECIFIED
+    dir_status = CONTENT_STATUS_NO_CHANGE
     tmp_file = None
     dir_changes = None
     if e_new_info and e_old_info:
@@ -167,29 +167,38 @@ def get_dir_changes(new_dir_info, old_dir_info, parent_dir_changes=None,
         dir_changes = get_dir_changes(new_dir_info.dir_info(e_new_info.path),
                                       old_dir_info.dir_info(e_old_info.path),
                                       parent_dir_changes=cur_dir_changes,
-                                      root_dir=root_dir, tmp_dir=tmp_dir)
+                                      root_dir=root_dir, tmp_dir=tmp_dir,
+                                      verbose=verbose)
         if dir_changes.dir_status() == CONTENT_STATUS_NO_CHANGE:
           content_status = CONTENT_STATUS_NO_CHANGE
         else:
           content_status = CONTENT_STATUS_MODIFIED
         dir_status = dir_changes.dir_status()
       elif e_new_info.is_dir and not e_old_info.is_dir:
+        if verbose:
+          print '%s: file to dir' % e_new_info.path
         dir_changes = get_dir_changes(new_dir_info.dir_info(e_new_info.path),
                                       None, parent_dir_changes=cur_dir_changes,
-                                      root_dir=root_dir, tmp_dir=tmp_dir)
+                                      root_dir=root_dir, tmp_dir=tmp_dir,
+                                      verbose=verbose)
         content_status = CONTENT_STATUS_TO_DIR
         dir_status = dir_changes.dir_status()
       elif not e_new_info.is_dir and e_old_info.is_dir:
+        if verbose:
+          print '%s: dir to file' % e_new_info.path
         dir_changes = get_dir_changes(None,
                                       old_dir_info.dir_info(e_old_info.path),
                                       parent_dir_changes=cur_dir_changes,
-                                      root_dir=root_dir, tmp_dir=tmp_dir)
+                                      root_dir=root_dir, tmp_dir=tmp_dir,
+                                      verbose=verbose)
         content_status = CONTENT_STATUS_TO_FILE
         dir_status = dir_changes.dir_status()
         if root_dir and tmp_dir:
           tmp_file = _copy_to_tmp_dir(root_dir, e_new_info.path, tmp_dir)
       else:
         if e_new_info.is_modified(e_old_info):
+          if verbose:
+            print '%s: file modified' % e_new_info.path
           content_status = CONTENT_STATUS_MODIFIED
           if root_dir and tmp_dir:
             tmp_file = _copy_to_tmp_dir(root_dir, e_new_info.path, tmp_dir)
@@ -214,15 +223,21 @@ def get_dir_changes(new_dir_info, old_dir_info, parent_dir_changes=None,
     elif e_new_info and not e_old_info:
       path = e_new_info.path
       if e_new_info.is_dir:
+        if verbose:
+          print '%s: new dir' % e_new_info.path
         dir_changes = get_dir_changes(new_dir_info.dir_info(e_new_info.path),
                                       None, parent_dir_changes=cur_dir_changes,
-                                      root_dir=root_dir, tmp_dir=tmp_dir)
+                                      root_dir=root_dir, tmp_dir=tmp_dir,
+                                      verbose=verbose)
         dir_status = dir_changes.dir_status()
-      elif root_dir and tmp_dir:
-        tmp_file = _copy_to_tmp_dir(root_dir, e_new_info.path, tmp_dir)
-        if tmp_file:
-          e_new_info = file_info.copy_with_tmp_file(e_new_info, tmp_file,
-                                                    tmp_dir)
+      else:
+        if verbose:
+          print '%s: new file' % e_new_info.path
+        if root_dir and tmp_dir:
+          tmp_file = _copy_to_tmp_dir(root_dir, e_new_info.path, tmp_dir)
+          if tmp_file:
+            e_new_info = file_info.copy_with_tmp_file(e_new_info, tmp_file,
+                                                      tmp_dir)
 
       change = ChangeEntry(
           e_new_info.path, e_new_info, None, CONTENT_STATUS_NEW,
@@ -231,11 +246,17 @@ def get_dir_changes(new_dir_info, old_dir_info, parent_dir_changes=None,
     elif not e_new_info and e_old_info:
       path = e_old_info.path
       if e_old_info.is_dir:
+        if verbose:
+          print '%s: dir deleted' % e_old_info.path
         dir_changes = get_dir_changes(None,
                                       old_dir_info.dir_info(e_old_info.path),
                                       parent_dir_changes=cur_dir_changes,
-                                      root_dir=root_dir, tmp_dir=tmp_dir)
+                                      root_dir=root_dir, tmp_dir=tmp_dir,
+                                      verbose=verbose)
         dir_status = dir_changes.dir_status()
+      else:
+        if verbose:
+          print '%s: file deleted' % e_old_info.path
 
       change = ChangeEntry(
           e_old_info.path, None, e_old_info, CONTENT_STATUS_DELETED,
