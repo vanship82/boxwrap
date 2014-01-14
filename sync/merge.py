@@ -92,12 +92,11 @@ def _merge_both_files(c1, c2, dc_new1, dc_old1, dc_new2, dc_old2,
                                   parent_dir_changes=c2.parent_dir_changes)
 
   if not c1:
-    if not c2 and c2.content_status == change_entry.CONTENT_STATUS_NEW:
-      _sync_change(c2, dc_new1, dc_old1)
-    else:
-      # sync c2 to c1
-      _sync_change(c2, dc_new1, dc_old1)
-      _sync_change(c2, dc_new2, dc_old2, change_on_dc_new=False)
+    if c2:
+        # sync c2 to c1
+        _sync_change(c2, dc_new1, dc_old1)
+        _sync_change(c2, dc_new2, dc_old2, change_on_dc_new=False)
+
   elif c1.content_status == change_entry.CONTENT_STATUS_NO_CHANGE:
     if c2.content_status == change_entry.CONTENT_STATUS_NO_CHANGE:
       # no change
@@ -176,7 +175,7 @@ def _merge_both_dirs(c1, c2, dc1, dc2,
                                   parent_dir_changes=c2.parent_dir_changes)
 
   if not c1:
-    if c2 and c2.content_status == change_entry.CONTENT_STATUS_NEW:
+    if c2:
       _sync_change(c2, dc_new1, dc_old1, dir_changes_new=results[0],
                    dir_changes_old=results[1])
       _sync_change(c2, dc_new2, dc_old2, dir_changes_new=results[2],
