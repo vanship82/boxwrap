@@ -278,10 +278,13 @@ def _boxwrap():
       print >>sys.stderr, 'Performing sync and merge round #%s' % (i + 1)
       has_changes, working_di, wrap_di = boxwrap.sync(dir_info, verbose=True)
       if not has_changes:
+        print 'No changes are found. Sync is completed.'
         break
       with open(profile_dir_info_file, 'wb') as f:
         working_di.write_to_csv(f)
       dir_info = working_di
+    if has_changes:
+      print 'Sync is incomplete, you may run again to complete sync.'
   except compression.CompressionException as e:
     print >>sys.stderr, (
         '%s. The archive %s is not able to be decompressed.' %
