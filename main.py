@@ -98,9 +98,11 @@ class BoxWrap:
       # Apply invalid_archives_dc to working dir because they are not
       # compressed. These files will be compressed and sync after next sync.
       change_entry.apply_dir_changes_to_dir(self.working_dir,
-                                            invalid_archives_dc_working)
+                                            invalid_archives_dc_working,
+                                            verbose=verbose)
       change_entry.apply_dir_changes_to_dir(self.cloud_dir,
-                                            invalid_archives_dc_cloud)
+                                            invalid_archives_dc_cloud,
+                                            verbose=verbose)
     if debug:
       print '============== Latency after examing wrap_dir: %s s' % (
           time.time() - tstart)
@@ -126,10 +128,12 @@ class BoxWrap:
       phase += 1
       print 'Phase %s: Apply merged changes on working_dir at %s' % (
           phase, self.working_dir)
-    change_entry.apply_dir_changes_to_dir(self.working_dir, working_dc_new)
+    change_entry.apply_dir_changes_to_dir(self.working_dir, working_dc_new,
+                                          verbose=verbose)
     change_entry.apply_dir_changes_to_dir(
         self.working_dir, working_dc_conflict,
-        force_conflict=change_entry.CONFLICT_NEW)
+        force_conflict=change_entry.CONFLICT_NEW,
+        verbose=verbose)
     working_di = change_entry.apply_dir_changes_to_dir_info('.', working_dc_old)
     if debug:
       print '============== Latency after applying merged changes on working_dir: %s' % (time.time() - tstart)
@@ -138,10 +142,12 @@ class BoxWrap:
       phase += 1
       print 'Phase %s: Apply merged changes on wrap_dir at %s' % (
           phase, self.cloud_dir)
-    change_entry.apply_dir_changes_to_dir(self.cloud_dir, cloud_dc_new)
+    change_entry.apply_dir_changes_to_dir(self.cloud_dir, cloud_dc_new,
+                                          verbose=verbose)
     change_entry.apply_dir_changes_to_dir(
         self.cloud_dir, cloud_dc_conflict,
-        force_conflict=change_entry.CONFLICT_NEW)
+        force_conflict=change_entry.CONFLICT_NEW,
+        verbose=verbose)
     cloud_di = change_entry.apply_dir_changes_to_dir_info('.', cloud_dc_old)
     if debug:
       print '============== Latency after applying merged changes on wrap_dir: %s' % (time.time() - tstart)

@@ -342,45 +342,68 @@ def _get_dir_conflict_state(change, full_path):
     return CONFLICT_NO_CONFLICT
 
 
-def apply_dir_changes_to_dir(dest_dir, dir_changes, force_conflict=None):
+def apply_dir_changes_to_dir(dest_dir, dir_changes, force_conflict=None,
+                             verbose=False):
   for c in dir_changes.changes():
-    full_path = os.path.join(dest_dir, c.path)
+    full_path = os.path.realpath(os.path.join(dest_dir, c.path))
     if c.content_status == CONTENT_STATUS_TO_FILE:
       if not os.path.exists(full_path):
+        if verbose:
+          print 'Create file %s' % full_path
         c.cur_info.copy_tmp(full_path)
       elif os.path.isdir(full_path):
         apply_dir_changes_to_dir(dest_dir, c.dir_changes,
-                                 force_conflict=force_conflict)
+                                 force_conflict=force_conflict,
+                                 verbose=verbose)
         if os.listdir(full_path):
           # Conflict, the directory still exists
+          if verbose:
+            print 'Create conflict file %s' % _get_conflict_copy_path(full_path)
           c.cur_info.copy_tmp(_get_conflict_copy_path(full_path))
         else:
+          if verbose:
+            print 'Delete dir %s' % full_path
+            print 'Create file %s' % full_path
           os.rmdir(full_path)
           c.cur_info.copy_tmp(full_path)
       else:
         # full_path is a file
         if c.cur_info.is_modified(file_info.load_file_info(full_path)):
           # Conflict, the existing file is changed
+          if verbose:
+            print 'Create conflict file %s' % _get_conflict_copy_path(full_path)
           c.cur_info.copy_tmp(_get_conflict_copy_path(full_path))
 
     elif c.content_status == CONTENT_STATUS_TO_DIR:
       if not os.path.exists(full_path):
+        if verbose:
+          print 'Create dir %s' % full_path
         os.mkdir(full_path)
         apply_dir_changes_to_dir(dest_dir, c.dir_changes,
-                                 force_conflict=force_conflict)
+                                 force_conflict=force_conflict,
+                                 verbose=verbose)
       elif os.path.isdir(full_path):
         apply_dir_changes_to_dir(dest_dir, c.dir_changes,
-                                 force_conflict=force_conflict)
+                                 force_conflict=force_conflict,
+                                 verbose=verbose)
       else:
         # full_path is still a file
         if c.old_info.is_modified(file_info.load_file_info(full_path)):
+          if verbose:
+            print 'Move to conflict file %s' % _get_conflict_copy_path(
+                full_path)
           # Conflict, the existing file is changed
           os.rename(full_path, _get_conflict_copy_path(full_path))
         else:
+          if verbose:
+            print 'Delete file %s' % full_path
           os.remove(full_path)
+        if verbose:
+          print 'Create dir %s' % full_path
         os.mkdir(full_path)
         apply_dir_changes_to_dir(dest_dir, c.dir_changes,
-                                 force_conflict=force_conflict)
+                                 force_conflict=force_conflict,
+                                 verbose=verbose)
 
     elif ((not c.cur_info or not c.cur_info.is_dir)
         and (not c.old_info or not c.old_info.is_dir)):
@@ -389,16 +412,25 @@ def apply_dir_changes_to_dir(dest_dir, dir_changes, force_conflict=None):
                               CONTENT_STATUS_MODIFIED]:
         conflict_state = _get_file_conflict_state(c, full_path, force_conflict)
         if conflict_state == CONFLICT_NO_CONFLICT:
+          if verbose:
+            print 'Update file %s' % full_path
           c.cur_info.copy_tmp(full_path)
         elif conflict_state == CONFLICT_NEW:
+          if verbose:
+            print 'Create conflict file %s' % _get_conflict_copy_path(full_path)
           c.cur_info.copy_tmp(_get_conflict_copy_path(full_path))
         elif conflict_state == CONFLICT_DEST:
+          if verbose:
+            print 'Move to conflict file %s' % _get_conflict_copy_path(full_path)
+            print 'Create file %s' % full_path
           shutil.move(full_path, _get_conflict_copy_path(full_path))
           c.cur_info.copy_tmp(full_path)
       elif c.content_status == CONTENT_STATUS_DELETED:
         conflict_state = _get_file_conflict_state(c, full_path, force_conflict)
         if conflict_state == CONFLICT_NO_CONFLICT:
           if os.path.exists(full_path):
+            if verbose:
+              print 'Delete file %s' % full_path
             os.remove(full_path)
 
     else:
@@ -408,22 +440,32 @@ def apply_dir_changes_to_dir(dest_dir, dir_changes, force_conflict=None):
         conflict_state = _get_dir_conflict_state(c, full_path)
         if conflict_state == CONFLICT_NO_CONFLICT:
           if not os.path.exists(full_path):
+            if verbose:
+              print 'Create dir %s' % full_path
             os.mkdir(full_path)
         elif conflict_state == CONFLICT_DEST:
+          if verbose:
+            print 'Move to conflict file %s' % _get_conflict_copy_path(full_path)
+            print 'Create dir %s' % full_path
           shutil.move(full_path, _get_conflict_copy_path(full_path))
           os.mkdir(full_path)
         apply_dir_changes_to_dir(dest_dir, c.dir_changes,
-                                force_conflict=force_conflict)
+                                 force_conflict=force_conflict,
+                                 verbose=verbose)
       elif c.content_status == CONTENT_STATUS_DELETED:
         conflict_state = _get_dir_conflict_state(c, full_path)
         if conflict_state == CONFLICT_NO_CONFLICT:
           apply_dir_changes_to_dir(dest_dir, c.dir_changes,
-                                   force_conflict=force_conflict)
+                                   force_conflict=force_conflict,
+                                   verbose=verbose)
           if os.path.isdir(full_path) and not os.listdir(full_path):
+            if verbose:
+              print 'Delete dir %s' % full_path
             os.rmdir(full_path)
       else:
         # No change
         apply_dir_changes_to_dir(dest_dir, c.dir_changes,
-                                 force_conflict=force_conflict)
+                                 force_conflict=force_conflict,
+                                 verbose=verbose)
 
 
