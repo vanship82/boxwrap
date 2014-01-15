@@ -106,8 +106,9 @@ class BoxWrap:
     if debug:
       print '============== Latency after examing wrap_dir: %s s' % (
           time.time() - tstart)
+    has_changes = not is_working_no_change or not is_cloud_no_change
 
-    if verbose:
+    if has_changes and verbose:
       phase += 1
       print 'Phase %s: Merge changes on both dirs' % phase
     result = merge.merge(working_dc, cloud_dc)
@@ -124,7 +125,7 @@ class BoxWrap:
       self._print_changes('********** working_dc_conflict', working_dc_conflict)
       self._print_changes('********** cloud_dc_conflict', cloud_dc_conflict)
 
-    if verbose:
+    if has_changes and verbose:
       phase += 1
       print 'Phase %s: Apply merged changes on working_dir at %s' % (
           phase, self.working_dir)
@@ -138,7 +139,7 @@ class BoxWrap:
     if debug:
       print '============== Latency after applying merged changes on working_dir: %s' % (time.time() - tstart)
 
-    if verbose:
+    if has_changes and verbose:
       phase += 1
       print 'Phase %s: Apply merged changes on wrap_dir at %s' % (
           phase, self.cloud_dir)
@@ -153,8 +154,7 @@ class BoxWrap:
       print '============== Latency after applying merged changes on wrap_dir: %s' % (time.time() - tstart)
 
     os.chdir(cwd)
-    return [not is_working_no_change or not is_cloud_no_change,
-            working_di, cloud_di]
+    return [has_changes, working_di, cloud_di]
 
   def _generate_compressed_dir_changes(self, dir_changes):
     dir_changes = copy.deepcopy(dir_changes)
