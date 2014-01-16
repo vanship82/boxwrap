@@ -25,10 +25,7 @@ def _get_binary():
       binary = '7za_linux_x64'
   elif arch[1] == 'WindowsPE':
     # Windows
-    if arch[0] == '32bit':
-      binary = os.path.join('7z_win32', '7z.exe')
-    elif arch[0] == '64bit':
-      binary = os.path.join('7z_win64', '7z.exe')
+    binary = os.path.join('7z_win', '7z.exe')
   if not binary:
     raise Exception('Unable to identity 7-zip binary from platform.')
   return binary
