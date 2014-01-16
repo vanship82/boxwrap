@@ -9,7 +9,7 @@ def get_next(iterator):
 
 
 def path_for_sorting(path):
-  return path.replace(os.pathsep, '\1')
+  return path.replace(os.sep, '\1')
 
 
 def merge_two_iterators(iter1, iter2, key_func):
