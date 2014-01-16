@@ -86,7 +86,6 @@ class FileInfo:
     if not self.tmp_file:
       raise Exception("Error copy empty tmp file: %s" % self)
     shutil.copy2(self.tmp_file, dest_path)
-    os.chmod(dest_path, self.mode)
 
   def __str__(self):
     return (
