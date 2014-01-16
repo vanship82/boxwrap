@@ -109,14 +109,6 @@ class TestChangeEntry(unittest.TestCase):
     di_old = file_info.load_dir_info('.', calculate_hash=True)
     dc = change_entry.get_dir_changes(di_new, di_old)
     di_final = change_entry.apply_dir_changes_to_dir_info('.', dc)
-    ''' debug only
-    print "***************** dir_changes"
-    for item in dc.flat_changes():
-      print item
-    print "***************** final dir_info"
-    for item in di_final.flat_file_info_list():
-      print item
-    '''
     dc_final = change_entry.get_dir_changes(di_new, di_final)
     self._assertDirChanges(dc_final)
 
@@ -128,19 +120,31 @@ class TestChangeEntry(unittest.TestCase):
     dc = change_entry.get_dir_changes(di_new, di_old, root_dir=_TEST_DEST,
                                       tmp_dir=_TEST_TMP)
     change_entry.apply_dir_changes_to_dir(_TEST_SRC, dc)
-    ''' debug only
-    print "***************** dir_changes"
-    for item in dc.flat_changes():
-      print item
-    print "***************** final dir_info"
-    for item in di_final.flat_file_info_list():
-      print item
-    '''
     os.chdir(_TEST_SRC)
     di_final = file_info.load_dir_info('.', calculate_hash=True)
 
     dc_final = change_entry.get_dir_changes(di_new, di_final)
     self._assertDirChanges(dc_final)
+    self.assertEquals(
+        0100664, os.stat(os.path.join(_TEST_SRC, 'test2_modified.txt')).st_mode)
+
+  def test_change_entry_applied_to_real_dirs_with_mode(self):
+    os.chdir(_TEST_DEST)
+    os.chmod('test2_modified.txt', 0755)
+    di_new = file_info.load_dir_info('.', calculate_hash=True)
+    os.chdir(_TEST_SRC)
+
+    di_old = file_info.load_dir_info('.', calculate_hash=True)
+    dc = change_entry.get_dir_changes(di_new, di_old, root_dir=_TEST_DEST,
+                                      tmp_dir=_TEST_TMP)
+    change_entry.apply_dir_changes_to_dir(_TEST_SRC, dc)
+    os.chdir(_TEST_SRC)
+    di_final = file_info.load_dir_info('.', calculate_hash=True)
+
+    dc_final = change_entry.get_dir_changes(di_new, di_final)
+    self._assertDirChanges(dc_final)
+    self.assertEquals(
+        0100755, os.stat(os.path.join(_TEST_SRC, 'test2_modified.txt')).st_mode)
 
   def test_change_entry_conflict_file_new(self):
     os.chdir(_TEST_DEST)
