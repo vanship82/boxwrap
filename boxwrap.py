@@ -253,6 +253,17 @@ def _clean_up_tmp_dir(profile_dir):
       [os.path.join(profile_tmp_dir,f) for f in os.listdir(profile_tmp_dir)])
 
 
+def _human_readable_size(size):
+  if size >= 1024 * 1024 * 1024:
+    return '%.2gGB' % (size / (1024 * 1024 * 1024.0))
+  elif size >= 1024 * 1024:
+    return '%.2gMB' % (size / (1024 * 1024.0))
+  elif size >= 1024:
+    return '%.2gKB' % (size / 1024.0)
+  else:
+    return '%s' % size
+
+
 def _boxwrap():
   args = _validate_args_and_update_profile(_parse_args())
   password = args['password']
@@ -278,13 +289,29 @@ def _boxwrap():
       print >>sys.stderr, 'Performing sync and merge round #%s' % (i + 1)
       has_changes, working_di, wrap_di = boxwrap.sync(dir_info, verbose=True)
       if not has_changes:
-        print 'No changes are found. Sync is completed.'
         break
       with open(profile_dir_info_file, 'wb') as f:
         working_di.write_to_csv(f)
       dir_info = working_di
+
+    working_size = 0
+    for fi in working_di.flat_file_info_list():
+      if not fi.is_dir:
+        working_size += fi.size
+    wrap_size = 0
+    for fi in wrap_di.flat_file_info_list():
+      if not fi.is_dir:
+        wrap_size += fi.compressed_file_info.size
+
+    print 'Working dir size: %s' % _human_readable_size(working_size)
+    print 'Wrap dir size: %s' % _human_readable_size(wrap_size)
+    print 'Save space: %.2g%%' % (
+        (working_size - wrap_size) * 100.0 / working_size)
+
     if has_changes:
       print 'Sync is incomplete, you may run again to complete sync.'
+    else:
+      print 'No changes are found. Sync is completed.'
   except compression.CompressionException as e:
     print >>sys.stderr, (
         '%s. The archive %s is not able to be decompressed.' %
