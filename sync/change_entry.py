@@ -413,7 +413,10 @@ def apply_dir_changes_to_dir(dest_dir, dir_changes, force_conflict=None,
         conflict_state = _get_file_conflict_state(c, full_path, force_conflict)
         if conflict_state == CONFLICT_NO_CONFLICT:
           if verbose:
-            print 'Update file %s' % full_path
+            if c.content_status == CONTENT_STATUS_NEW:
+              print 'Create file %s' % full_path
+            else:
+              print 'Update file %s' % full_path
           c.cur_info.copy_tmp(full_path)
         elif conflict_state == CONFLICT_NEW:
           if verbose:
