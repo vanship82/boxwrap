@@ -255,11 +255,11 @@ def _clean_up_tmp_dir(profile_dir):
 
 def _human_readable_size(size):
   if size >= 1024 * 1024 * 1024:
-    return '%.2gGB' % (size / (1024 * 1024 * 1024.0))
+    return '%.2fGB' % (size / (1024 * 1024 * 1024.0))
   elif size >= 1024 * 1024:
-    return '%.2gMB' % (size / (1024 * 1024.0))
+    return '%.2fMB' % (size / (1024 * 1024.0))
   elif size >= 1024:
-    return '%.2gKB' % (size / 1024.0)
+    return '%.2fKB' % (size / 1024.0)
   else:
     return '%s' % size
 
