@@ -230,7 +230,7 @@ class BoxWrap:
             continue
           try:
             compression.decompress_file(c.cur_info.tmp_file, original_tmp_file,
-                                        password=self.password)
+                                        self.tmp_dir, password=self.password)
           except compression.CompressionInvalidArchive:
             invalid_archive_dc_working.add_change(change_entry.ChangeEntry(
                 # Not using path because it is not a valid archive

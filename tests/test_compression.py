@@ -11,6 +11,7 @@ _CASE_BASE_DIR = os.path.join(
 _CASE_SRC = os.path.join(_CASE_BASE_DIR, 'src')
 _CASE_DEST = os.path.join(_CASE_BASE_DIR, 'dest')
 _CASE_OUT = os.path.join(_CASE_BASE_DIR, 'out')
+_CASE_TMP = os.path.join(_CASE_BASE_DIR, 'tmp')
 _CASE_PATH = 'dir'
 
 class TestCompressionCases(unittest.TestCase):
@@ -22,9 +23,12 @@ class TestCompressionCases(unittest.TestCase):
       shutil.rmtree(_CASE_DEST)
     if os.path.exists(_CASE_OUT):
       shutil.rmtree(_CASE_OUT)
+    if os.path.exists(_CASE_TMP):
+      shutil.rmtree(_CASE_TMP)
     os.makedirs(_CASE_SRC)
     os.makedirs(_CASE_DEST)
     os.makedirs(_CASE_OUT)
+    os.makedirs(_CASE_TMP)
     path = os.path.join(_CASE_SRC, _CASE_PATH)
     os.makedirs(path)
     f = open(os.path.join(path, 'test.txt'), 'w')
@@ -59,7 +63,7 @@ class TestCompressionCases(unittest.TestCase):
         _CASE_PATH, _CASE_SRC, _CASE_DEST, password=None,
         encryption_method=compression.ENCRYPTION_AES_256)
     compression.decompress_recursively(
-        _CASE_PATH, _CASE_DEST, _CASE_OUT, password=None)
+        _CASE_PATH, _CASE_DEST, _CASE_OUT, _CASE_TMP, password=None)
     src = os.path.join(_CASE_SRC, _CASE_PATH)
     out = os.path.join(_CASE_OUT, _CASE_PATH)
     for path, dirs, files in os.walk(src):
@@ -82,7 +86,7 @@ class TestCompressionCases(unittest.TestCase):
         _CASE_PATH, _CASE_SRC, _CASE_DEST, password='123456',
         encryption_method=compression.ENCRYPTION_AES_256)
     compression.decompress_recursively(
-        _CASE_PATH, _CASE_DEST, _CASE_OUT, password='123456')
+        _CASE_PATH, _CASE_DEST, _CASE_OUT, _CASE_TMP, password='123456')
     src = os.path.join(_CASE_SRC, _CASE_PATH)
     out = os.path.join(_CASE_OUT, _CASE_PATH)
     for path, dirs, files in os.walk(src):
@@ -108,7 +112,7 @@ class TestCompressionCases(unittest.TestCase):
     self.assertRaises(
         compression.CompressionWrongPassword,
         compression.decompress_recursively,
-        _CASE_PATH, _CASE_DEST, _CASE_OUT,
+        _CASE_PATH, _CASE_DEST, _CASE_OUT, _CASE_TMP,
         password='1234567')
 
   def test_decopmression_invalid_archive(self):
@@ -116,6 +120,6 @@ class TestCompressionCases(unittest.TestCase):
     self.assertRaises(
         compression.CompressionInvalidArchive,
         compression.decompress_recursively,
-        _CASE_PATH, _CASE_SRC, _CASE_OUT,
+        _CASE_PATH, _CASE_SRC, _CASE_OUT, _CASE_TMP,
         password='1234567')
 

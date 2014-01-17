@@ -156,7 +156,6 @@ def compress_file(src_file, dest_file,
         os.path.exists(abs_dest_file + '.zip')):
       os.rename(abs_dest_file + '.zip', abs_dest_file)
     os.chdir(cwd)
-    shutil.copystat(src_file, dest_file)
     return dest_file
   except subprocess.CalledProcessError as e:
     if RETURN_CODE_EXCEPTION_MAP.has_key(e.returncode):
@@ -196,9 +195,9 @@ def compress_recursively(path, src_base_path, dest_base_path,
                     encryption_method=encryption_method)
 
 # @return   output filename, if success; None and exceptions otherwise.
-def decompress_file(src_file, dest_file,
+def decompress_file(src_file, dest_file, tmp_dir,
                     password=None):
-  params = [os.path.join(ZIP_PATH, ZIP_BIN), 'x', '-so']
+  params = [os.path.join(ZIP_PATH, ZIP_BIN), 'e', '-o%s' % tmp_dir, '-aoa']
   test_params = [os.path.join(ZIP_PATH, ZIP_BIN), 't']
   if password:
     params.append('-p%s' % password)
@@ -226,12 +225,20 @@ def decompress_file(src_file, dest_file,
     else:
       raise CompressionException(test_output, returncode, src_file)
 
+  filename = None
+  for l in test_output.split('\n'):
+    if l.startswith('Testing     '):
+      filename = l[12:]
+      break
+  if not filename:
+    raise CompressionInvalidArchive(0, src_file, output=test_output)
+
   try:
-    dest_f = open(dest_file, 'w')
-    subprocess.check_call(params, shell=False, stdout=dest_f,
+    print ' '.join(params)
+    subprocess.check_call(params, shell=False,
+                          stdout=open(os.devnull),
                           stderr=open(os.devnull))
-    dest_f.close()
-    shutil.copystat(src_file, dest_file)
+    shutil.move(os.path.join(tmp_dir, filename), dest_file)
     return dest_file
   except subprocess.CalledProcessError as e:
     if RETURN_CODE_EXCEPTION_MAP.has_key(e.returncode):
@@ -239,13 +246,14 @@ def decompress_file(src_file, dest_file,
     else:
       raise CompressionException(e.returncode)
 
-def decompress_recursively(path, src_base_path, dest_base_path,
+def decompress_recursively(path, src_base_path, dest_base_path, tmp_dir,
                            password=None):
   src_total_path = os.path.join(src_base_path, path)
   dest_total_path = os.path.join(dest_base_path, path)
   if os.path.isfile(src_total_path):
     decompress_file(src_total_path,
                     get_original_filename(dest_total_path),
+                    tmp_dir,
                     password=password)
     return
 
@@ -262,6 +270,7 @@ def decompress_recursively(path, src_base_path, dest_base_path,
       decompress_file(os.path.join(cur_path, f),
                       get_original_filename(
                           os.path.join(cur_dest_path, f)),
+                      tmp_dir,
                       password=password)
 
 def test_decompress_file(src_file, password=None):
