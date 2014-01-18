@@ -6,11 +6,11 @@ Wrap your cloud storage securely and save space.
 
 BoxWrap secures and compresses your cloud storage while maintaining the highest compatibility and productivity:
 
-* Save space: compress each file into separate zip archive on the cloud ending with `.boxwrap.zip`
-* Protect privacy: encrypt each zip archive on the cloud in ZipCrypto or AES
-* Maintain compatibility: unzip individual zip archive with other software even though you don't have BoxWrap
-* Keep productivity: work on the original files on your machine and BoxWrap put them on the cloud securely
-* Share: back up your files on multiple cloud storages
+* **Save space:** compress each file into separate zip archive on the cloud ending with `.boxwrap.zip`
+* **Protect privacy:** encrypt each zip archive on the cloud in ZipCrypto or AES
+* **Maintain compatibility**: unzip individual zip archive with other software even though you don't have BoxWrap
+* **Keep productivity**: work on the original files on your machine and BoxWrap put them on the cloud securely
+* **Share**: back up your files on multiple cloud storages
 * and more ...
  
 ## How does BoxWrap work?
