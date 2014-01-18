@@ -305,8 +305,9 @@ def _boxwrap():
 
     print 'Working dir size: %s' % _human_readable_size(working_size)
     print 'Wrap dir size: %s' % _human_readable_size(wrap_size)
-    print 'Save space: %.2g%%' % (
-        (working_size - wrap_size) * 100.0 / working_size)
+    if working_size > 0:
+      print 'Save space: %.2g%%' % (
+          (working_size - wrap_size) * 100.0 / working_size)
 
     if has_changes:
       print 'Sync is incomplete, you may run again to complete sync.'
