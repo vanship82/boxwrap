@@ -1,6 +1,6 @@
 # BoxWrap
 
-A command line sync tool to wrap your cloud storage securely and save space.
+A command line sync tool to wrap your cloud storage securely and save space using zip archives.
 
 ## What is BoxWrap for?
 
