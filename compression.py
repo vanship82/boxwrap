@@ -26,6 +26,9 @@ def _get_binary():
   elif arch[1] == 'WindowsPE':
     # Windows
     binary = os.path.join('7z_win', '7z.exe')
+  elif platform.system() == 'Darwin':
+    # Mac
+    binary = '7za_mac_x64'
   if not binary:
     raise Exception('Unable to identity 7-zip binary from platform.')
   return binary
