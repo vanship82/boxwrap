@@ -130,4 +130,12 @@ python boxwrap.py -p my-wrapbox-google $HOME/BoxWrap "$HOME/Google Drive/BoxWrap
 
 Then you sync your working directory to both Dropbox and Google Drive, with compression and encryption. Moreover, you can supply a different password for Google Drive to keep the backup more secure.
 
+## License
 
+The source code is released under [LGPL v3](http://www.gnu.org/licenses/lgpl-3.0.html) or (at your option) any later version.
+
+## Acknowledgement
+
+Special thanks to [7-zip](http://www.7-zip.org/) and [P7ZIP](http://p7zip.sourceforge.net/) which provide cross-platform command line tools to handle encrypted zip archives. Without it, it is difficult to implement cross-platform BoxWrap.
+
+For people who want to improve it, please fork it, change it, and send me a pull request.
