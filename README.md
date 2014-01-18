@@ -27,6 +27,8 @@ BoxWrap does not have any network communication. It only stores your encryption 
 
 BoxWrap supports any cloud storage providers that have client sync software, including Dropbox, Google Drive, SugerSync, Box, etc.
 
+As BoxWrap is a python script, it runs on Windows, Mac, and Linux.
+
 ## Basic usage
 
 Suppose that you has installed Dropbox and set up the sync directory at `$HOME/Dropbox`.
