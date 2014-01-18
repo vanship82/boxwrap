@@ -237,7 +237,6 @@ def decompress_file(src_file, dest_file, tmp_dir,
     raise CompressionInvalidArchive(0, src_file, output=test_output)
 
   try:
-    print ' '.join(params)
     subprocess.check_call(params, shell=False,
                           stdout=open(os.devnull),
                           stderr=open(os.devnull))
