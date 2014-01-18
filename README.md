@@ -68,7 +68,7 @@ To sync the changes to the wrap directory, you run BoxWrap again with the profil
 python boxwrap.py my-wrapbox
 ```
 
-After typing the correct password, BoxWrap will sync file `hello.txt` in the working directory to `hello.txt.boxwrap.zip`.
+After typing the correct password, BoxWrap will sync file `hello.txt` in the working directory to `hello.txt.boxwrap.zip` in the wrap directory.
 
 In a word, keep running the command above whenever you modify the working directory, or Dropbox modifies the wrap directory in its sync directory. There is a plan to run the command automatically and manage it with a GUI, but it is unavailable right now.
 
